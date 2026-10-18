@@ -1,0 +1,5 @@
+source,factors,regularization,iterations,fold,ndcg@10,map@10,precision@10,recall@10,users_evaluated,notes
+Cheuque et al. article,500,0.01,300,,0.332,,,,,reported ALS result from article
+"ALS reported hyperparameters, reconstructed protocol",500,0.01,300,1.0,0.08540193222480194,0.035452651287334894,0.07078143483404077,0.07424989004041588,14371.0,reported hyperparameters evaluated under reconstructed protocol
+"ALS Optuna tuned, validation fold",32,0.016785623520453166,30,0.0,0.28331362789043507,0.15502990315916904,0.21767325354856668,0.24183082702578773,14372.0,best Optuna result on validation fold
+"ALS Optuna tuned, test fold",32,0.016785623520453166,30,1.0,0.2826617389124026,0.1540260329036709,0.2167907591677684,0.24338558878095254,14371.0,best Optuna hyperparameters evaluated on held-out test fold

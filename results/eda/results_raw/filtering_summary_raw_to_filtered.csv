@@ -1,0 +1,5 @@
+stage,interactions,users,items,interactions_share_of_raw,users_share_of_raw,items_share_of_raw
+raw,5153209,70912,10978,1.0,1.0,1.0
+after_playtime_clip,5153209,70912,10978,1.0,1.0,1.0
+after_item_filter_min_5,5149512,70912,9198,0.9992825829497698,1.0,0.8378575332483148
+after_user_filter_min_5,5132610,62944,9198,0.9960026849289443,0.8876353790613718,0.8378575332483148

@@ -1,0 +1,2 @@
+model,factors,regularization,iterations,alpha,playtime_transform,k,metric_name,metric_value,metric_percent,users_evaluated,train_interactions,test_interactions,n_users,n_items
+Bayram2021_paid_ALS_minutes_replication,100,1.0,20,6.0,alpha * (log(playtime_forever_minutes + 1) + 0.01),10,Bayram-style Precision@10 / HitRate@10,0.2918331546632882,29.183315466328818,61566,3154931,61566,61566,7550

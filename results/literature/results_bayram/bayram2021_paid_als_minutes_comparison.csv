@@ -1,0 +1,3 @@
+source,metric,value,percent,notes,absolute_difference,relative_difference
+Bayram reported ALS paid games,Precision@10 / HitRate@10,0.316,31.6,reported result,0.0,0.0
+our approximate replication,Precision@10 / HitRate@10,0.2918331546632882,29.183315466328818,"paid games only, minutes-based log playtime transform, implicit ALS",-0.024166845336711817,-0.07647735866048043

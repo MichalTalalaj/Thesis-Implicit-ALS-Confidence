@@ -1,0 +1,81 @@
+\chapter*{Wykaz symboli i skrótów}
+\addcontentsline{toc}{chapter}{Wykaz symboli i skrótów}
+
+\section*{Skróty}
+
+\begin{longtable}{@{}p{0.18\textwidth}p{0.78\textwidth}@{}}
+ALS & naprzemienna metoda najmniejszych kwadratów (\textit{alternating least squares}) \\
+iALS & ALS dla niejawnej informacji zwrotnej (\textit{implicit ALS}) \\
+BPR & spersonalizowany ranking bayesowski (\textit{Bayesian Personalized Ranking}) \\
+SVD & rozkład według wartości osobliwych (\textit{singular value decomposition}) \\
+TPE & estymator drzewiasty Parzena (\textit{tree-structured Parzen estimator}) \\
+RMSE & pierwiastek błędu średniokwadratowego (\textit{root mean squared error}) \\
+MAE & średni błąd bezwzględny (\textit{mean absolute error}) \\
+DCG & skumulowany zysk z~dyskontowaniem (\textit{discounted cumulative gain}) \\
+IDCG & idealny DCG (\textit{ideal DCG}) \\
+NDCG & znormalizowany DCG (\textit{normalized DCG}) \\
+ILD & różnorodność wewnątrzlistowa (\textit{intra-list diversity}) \\
+GAP & średnia popularność grupy (\textit{group average popularity}) \\
+$\Delta$GAP & względna różnica średniej popularności rekomendacji i~profilu użytkownika \\
+IPS & odwrotne ważenie prawdopodobieństwem ekspozycji (\textit{inverse propensity scoring})
+\end{longtable}
+
+\section*{Symbole}
+
+\begin{longtable}{@{}p{0.18\textwidth}p{0.78\textwidth}@{}}
+\multicolumn{2}{@{}l}{\textit{Zbiory i~indeksy}} \\[2pt]
+$\mathcal{U}$ & zbiór użytkowników, $|\mathcal{U}| = m$ \\
+$\mathcal{I}$ & zbiór obiektów (gier), $|\mathcal{I}| = n$ \\
+$u$ & indeks użytkownika, $u \in \mathcal{U}$ \\
+$i$, $j$ & indeksy obiektów, $i, j \in \mathcal{I}$ \\
+$k$, $l$ & indeksy pozycji na liście rekomendacyjnej \\
+$\mathcal{I}_u$ & zbiór obiektów, z~którymi użytkownik $u$ wszedł w~interakcję \\
+$\mathcal{I}_u^{+}$ & zbiór obiektów pozytywnych użytkownika $u$ w~modelu BPR \\
+$\mathcal{I}_u^{\text{train}}$, $\mathcal{I}_u^{\text{test}}$ & interakcje użytkownika $u$ w~zbiorze treningowym i~testowym \\
+$\mathcal{K}$ & zbiór zaobserwowanych par $(u,i)$ \\
+$\mathcal{K}_{\text{conf}}$ & zbiór par, dla których $c_{ui} \neq 1$ \\
+$D_S$ & zbiór trójek treningowych $(u,i,j)$ w~modelu BPR \\
+$>_u$ & ukryta relacja preferencji użytkownika $u$ \\[6pt]
+
+\multicolumn{2}{@{}l}{\textit{Dane i~preferencje}} \\[2pt]
+$\mathbf{R}$ & macierz obserwacji, $\mathbf{R} \in \mathbb{R}^{m \times n}$ \\
+$r_{ui}$ & zarejestrowana intensywność interakcji użytkownika $u$ z~obiektem $i$ (czas gry) \\
+$\mathbf{P}$ & binarna macierz preferencji, $\mathbf{P} \in \{0,1\}^{m \times n}$ \\
+$p_{ui}$ & element macierzy preferencji; $p_{ui} = 1$, gdy obiekt $i$ znajduje się w~bibliotece użytkownika $u$ \\
+$\mathbf{p}^u$, $\mathbf{p}^i$ & wektory preferencji użytkownika $u$ oraz obiektu $i$ \\
+$\mathbf{p}_i$ & kolumna macierzy $\mathbf{P}$ odpowiadająca obiektowi $i$ \\[6pt]
+
+\multicolumn{2}{@{}l}{\textit{Model i~parametry}} \\[2pt]
+$\mathbf{X}$, $\mathbf{Y}$ & macierze czynników ukrytych użytkowników i~obiektów \\
+$\mathbf{x}_u$, $\mathbf{y}_i$ & wektory czynników ukrytych, $\mathbf{x}_u, \mathbf{y}_i \in \mathbb{R}^f$ \\
+$f$ & wymiar przestrzeni czynników ukrytych \\
+$\Theta$ & wektor wszystkich parametrów modelu BPR \\
+$\mu$, $b_u$, $b_i$ & wyraz wolny oraz odchylenia użytkownika i~obiektu w~modelu Funk SVD \\
+$\hat{r}_{ui}$ & przewidywana wartość oceny \\
+$\hat{s}_{ui}$ & wynik dopasowania obiektu $i$ do użytkownika $u$ w~modelu BPR \\
+$\hat{s}_{uij}$ & różnica wyników dopasowania, $\hat{s}_{uij} = \hat{s}_{ui} - \hat{s}_{uj}$ \\
+$\mathbf{C}^u$, $\mathbf{C}^i$ & diagonalne macierze pewności użytkownika $u$ oraz obiektu $i$ \\
+$c_{ui}$ & waga pewności przypisana parze użytkownik--obiekt \\
+$\mathbf{I}_f$, $\mathbf{I}_n$ & macierze jednostkowe wymiaru $f$ oraz $n$ \\[6pt]
+
+\multicolumn{2}{@{}l}{\textit{Hiperparametry}} \\[2pt]
+$\alpha$ & parametr skalujący wagę pewności \\
+$\beta$ & parametr przesunięcia w~przekształceniu logarytmicznym \\
+$\gamma$ & stała wartość wzrostu wagi pewności w~wariancie niezależnym od czasu gry \\
+$\lambda$ & współczynnik regularyzacji w~modelach Funk SVD oraz iALS \\
+$\lambda_\Theta$ & współczynnik regularyzacji w~modelu BPR \\
+$\eta$ & współczynnik uczenia w~algorytmie LearnBPR \\[6pt]
+
+\multicolumn{2}{@{}l}{\textit{Ewaluacja}} \\[2pt]
+$N$ & długość listy rekomendacyjnej \\
+$\mathcal{R}_u^N$ & zbiór obiektów rekomendowanych użytkownikowi $u$ \\
+$\text{Hits}_u@N$ & liczba trafnych rekomendacji dla użytkownika $u$ \\
+$\text{pop}(i)$ & popularność obiektu $i$ \\
+$d_{\cos}(i,j)$ & odległość cosinusowa między obiektami $i$ oraz $j$ \\[6pt]
+
+\multicolumn{2}{@{}l}{\textit{Funkcje}} \\[2pt]
+$\sigma(\cdot)$ & funkcja sigmoidalna \\
+$\mathbf{1}(\cdot)$ & funkcja wskaźnikowa \\
+$\mathcal{L}$ & funkcja celu \\
+$\operatorname{vec}(\cdot)$ & przekształcenie macierzy do postaci wektora
+\end{longtable}

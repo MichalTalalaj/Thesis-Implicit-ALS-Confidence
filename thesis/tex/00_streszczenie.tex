@@ -1,0 +1,17 @@
+\chapter*{Streszczenie}
+\addcontentsline{toc}{chapter}{Streszczenie}
+
+\noindent\textbf{Tytuł pracy:} Wpływ funkcji pewności na jakość rekomendacji gier w~modelu implicit ALS
+
+\vspace{0.8em}
+
+Praca poświęcona jest analizie wpływu funkcji pewności na jakość rekomendacji generowanych przez model implicit ALS. W metodzie zaproponowanej przez Hu, Korena i Volinsky'ego obserwacje wchodzą do modelu z wagami wyznaczanymi jako funkcja intensywności interakcji użytkownika z obiektem, przy czym wybór tej funkcji bywa w praktyce badawczej przyjmowany jako założenie, bez weryfikacji jego zasadności. Celem pracy było zbadanie, w~jakim stopniu sposób przekształcenia tego sygnału przekłada się na jakość rekomendacji, oraz zestawienie jego znaczenia z~wpływem wyboru samej klasy modelu.
+
+Badanie przeprowadzono na rzeczywistych danych z~platformy Steam, obejmujących biblioteki gier użytkowników wraz z~zarejestrowanym łącznym czasem rozgrywki. Porównano pięć wariantów funkcji pewności: liniową, logarytmiczną, logarytmiczną z~saturacją, logarytmiczną z~przesunięciem oraz stałą, całkowicie pomijającą czas gry. Warianty zestawiono z~modelem Bayesian Personalized Ranking oraz z~rekomendacjami opartymi na popularności, a~hiperparametry każdego z~modeli dostrojono niezależnie w~procesie optymalizacji bayesowskiej. Jakość rekomendacji oceniono przy użyciu miar trafności rankingu oraz miar wykraczających poza trafność: pokrycia katalogu, różnorodności wewnątrzlistowej i~obciążenia popularnością. Przeprowadzono również analizę stabilności wyników, testy istotności statystycznej wraz z~oceną wielkości efektu oraz analizę wrażliwości na parametry funkcji pewności.
+
+Uzyskane wyniki wskazują, że w badanym zbiorze monotoniczne różnicowanie wag pewności według czasu gry nie przynosi poprawy jakości rekomendacji. Najwyższą trafność osiągnął wariant o stałej funkcji pewności, przewyższając pod względem metryki \ndcg{} wariant logarytmiczny o 6,2\%, a liniowy o 8,1\%. Jednocześnie różnica dzieląca modele implicit ALS od modelu BPR okazała się znacznie większa niż cały rozstęp obserwowany wewnątrz rodziny implicit ALS, przy czym model BPR uzyskał ponad dwukrotnie wyższe pokrycie katalogu. Wybór klasy modelu przesądza zatem przede wszystkim o bilansie między poszczególnymi wymiarami jakości rekomendacji.
+
+Płynie stąd wniosek, że w~badanym zbiorze sam fakt posiadania tytułu okazał się wystarczającym sygnałem preferencji, by dorównać przekształceniom uwzględniającym czas gry. Wynik wskazuje, że w~rozważanych postaciach przekształceń nie udało się tej informacji wykorzystać w~sposób przekładający się na poprawę jakości rekomendacji, jednak nie przesądza o~braku informacyjności czasu gry. Wnioski te odnoszą się do konkretnej definicji sygnału, jaką jest łączny czas gry akumulowany przez cały okres posiadania tytułu.
+
+\vspace{1em}
+\noindent\textbf{Słowa kluczowe:} systemy rekomendacyjne, niejawna informacja zwrotna, faktoryzacja macierzy, implicit ALS, funkcja pewności, platforma Steam

@@ -1,0 +1,39 @@
+
+Bayram 2021 paid-games ALS replication note:
+
+This notebook approximately replicates the paid-games ALS setting from Bayram's
+Steam recommender project.
+
+The experiment uses only paid games, defined as games with price_numeric_clean > 0
+in steam_games_final.csv. Missing prices and non-numeric price values were converted
+to 0, therefore such games were excluded from the paid-games subset.
+
+The model parameters are:
+- factors = 100
+- regularization = 1.0
+- iterations = 20
+- alpha = 6.0
+- top-k = 10
+
+The main replication variant uses the following confidence transformation:
+
+    confidence = alpha * (log(playtime_forever + 1) + 0.01)
+
+where playtime_forever is used in the original unit available in users_items.csv,
+i.e. minutes.
+
+Although the text of the replicated work describes playtime in hours, the
+hours-based variant produced a substantially lower HitRate@10. The minutes-based
+variant produced a result closer to the reported paid-games ALS result. This suggests
+that either the original implementation used the raw playtime_forever scale, or the
+unit description in the text is ambiguous.
+
+The evaluation follows a one-hidden-item protocol: one item is hidden for each user,
+and the model is evaluated by checking whether this hidden item appears in the top-10
+recommendations.
+
+Therefore the metric reported by Bayram as Precision@10 is interpreted here as
+HitRate@10, not classical Precision@10. In this protocol:
+- Recall@10 equals HitRate@10, because each user has exactly one hidden test item.
+- Classical Precision@10 equals HitRate@10 / 10.
+- NDCG@10 is additionally reported to account for the rank of the hidden item.

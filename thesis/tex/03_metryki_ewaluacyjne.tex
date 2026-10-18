@@ -1,0 +1,145 @@
+\chapter{Metryki ewaluacyjne}
+
+\section{Ewaluacja rekomendacji Top-N}
+
+Ocena jakości systemów rekomendacyjnych wymaga zastosowania odpowiednio dobranych metryk, które oddają zarówno trafność przewidywań, jak i inne cechy, takie jak obciążenie popularnością, pokrycie katalogu czy różnorodność. Niniejszy rozdział przedstawia metryki ewaluacyjne zastosowane w pracy, wraz z ich definicją i interpretacją.
+
+Niech $\mathcal{U}$ oznacza zbiór wszystkich użytkowników, a $\mathcal{I}$ zbiór wszystkich obiektów w katalogu. W procesie ewaluacji zbiór interakcji każdego użytkownika $u \in \mathcal{U}$ dzieli się na część treningową oraz testową, co pozwala zdefiniować zbiory:
+\begin{itemize}
+    \item $\mathcal{I}_u^{\text{train}}$ --- zbiór obiektów, z~którymi użytkownik $u$ wszedł w~interakcję w~zbiorze treningowym,
+    \item $\mathcal{I}_u^{\text{test}}$ --- zbiór obiektów, z~którymi użytkownik $u$ wszedł w~interakcję w~zbiorze testowym.
+\end{itemize}
+Wprowadzone tu oznaczenia stanowią uszczegółowienie zbioru $\mathcal{I}_u$
+z~podrozdziału~\ref{sec:top_n_formulation}, rozdzielonego na część
+wykorzystywaną do uczenia oraz część służącą ocenie.
+
+Jak wskazano w~podrozdziale~\ref{sec:top_n_formulation}, współczesne systemy rekomendacyjne rzadko koncentrują się na predykcji ciągłych wartości ocen, a zamiast tego rozwiązują zadanie rekomendacji Top-$N$ oceniane za pomocą metryk rankingowych~\cite{li2023recent}. Celem algorytmu jest wygenerowanie dla użytkownika $u$ uporządkowanej listy $N$ najbardziej trafnych obiektów ze zbioru pozycji dotąd przez niego niezaobserwowanych:
+\begin{equation}
+    \text{Top-}N(u) = \left( i_1^{(u)}, i_2^{(u)}, \dots, i_N^{(u)} \right),
+\end{equation}
+gdzie $i_k^{(u)} \in \mathcal{I} \setminus \mathcal{I}_u^{\text{train}}$ oznacza element listy rekomendacji dla użytkownika $u$, a parametr $N$ określa rozmiar prezentowanej użytkownikowi listy.
+
+Zbiór obiektów rekomendowanych użytkownikowi $u$, pozbawiony informacji o ich kolejności na liście, oznacza się jako $\mathcal{R}_u^N = \{ i_1^{(u)}, i_2^{(u)}, \dots, i_N^{(u)} \}$. Podstawą oceny skuteczności rekomendacji jest część wspólna zbioru pozycji
+rekomendowanych $\mathcal{R}_u^N$ oraz zbioru pozycji rzeczywiście istotnych
+w~zbiorze testowym $\mathcal{I}_u^{\text{test}}$, której liczność wyznacza
+liczbę trafnych rekomendacji:
+\begin{equation}
+    \text{Hits}_u@N = \left| \mathcal{R}_u^N \cap \mathcal{I}_u^{\text{test}} \right|.
+\end{equation}
+
+\section{Metryki trafności rankingu}
+
+Metryki trafności oceniają zdolność systemu rekomendacyjnego do identyfikacji obiektów zawartych w zbiorze testowym. W kontekście rekomendacji Top-$N$ najpopularniejszymi miarami są precyzja ($\text{Precision}@N$), pełność ($\text{Recall}@N$) oraz znormalizowany zdyskontowany zysk skumulowany ($\text{NDCG}@N$)~\cite{jannach2011recommender, aggarwal2016recommender}.
+
+\subsection{Precyzja i Pełność}
+\label{subsec:precyzja-pelnosc}
+
+Precyzja na poziomie $N$ określa uśredniony stosunek liczby trafnych rekomendacji do całkowitej liczby obiektów zaprezentowanych na rekomendowanej liście~\cite{jannach2011recommender}:
+\begin{equation}
+    \text{Precision}@N = \frac{1}{|\mathcal{U}|} \sum_{u \in \mathcal{U}} \frac{\text{Hits}_u@N}{N} = \frac{1}{|\mathcal{U}|} \sum_{u \in \mathcal{U}} \frac{\left| \mathcal{R}_u^N \cap \mathcal{I}_u^{\text{test}} \right|}{N}.
+\end{equation}
+
+Pełność na poziomie $N$ mierzy natomiast, jaka część obiektów istotnych dla użytkownika zawartych w zbiorze testowym została uwzględniona na wygenerowanej liście Top-$N$~\cite{jannach2011recommender}:
+\begin{equation}
+    \text{Recall}@N = \frac{1}{|\mathcal{U}|} \sum_{u \in \mathcal{U}} \frac{\text{Hits}_u@N}{\left| \mathcal{I}_u^{\text{test}} \right|} = \frac{1}{|\mathcal{U}|} \sum_{u \in \mathcal{U}} \frac{\left| \mathcal{R}_u^N \cap \mathcal{I}_u^{\text{test}} \right|}{\left| \mathcal{I}_u^{\text{test}} \right|}.
+\end{equation}
+
+W obu przypadkach uśrednienie prowadzone jest po użytkownikach dysponujących
+co najmniej jedną interakcją w~zbiorze testowym, co zapewnia dodatniość
+mianownika. Mimo szerokiego zastosowania obie przedstawione metryki mają istotne ograniczenia. $\text{Precision}@N$ jest silnie uzależniona od liczby dostępnych interakcji testowych użytkownika. W przypadku gdy $|\mathcal{I}_u^{\text{test}}| < N$, maksymalna teoretyczna wartość precyzji dla takiego użytkownika jest mniejsza niż $1$ i maleje wraz ze wzrostem długości listy $N$. Z kolei $\text{Recall}@N$ monotonicznie rośnie wraz ze wzrostem długości listy $N$, co oznacza, że ustawienie zbyt dużego parametru $N$ może prowadzić do sztucznie wysokich wartości pełności.
+
+\subsection{Znormalizowany zdyskontowany zysk skumulowany}
+\label{subsec:ndcg}
+
+W celu wyeliminowania ograniczeń wyżej opisanych miar stosuje się znormalizowany zdyskontowany zysk skumulowany \footnote{W~literaturze funkcjonują dwa warianty tej miary, różniące się postacią funkcji zysku w~liczniku: liniowy, wykorzystany powyżej, oraz wykładniczy, w~którym zysk przyjmuje postać $2^{\mathrm{rel}_k}-1$~\cite{burges2005learning}. Dla rozważanej w niniejszej pracy binarnej oceny oba warianty są równoważne.} ($\text{NDCG}@N$)~\cite{aggarwal2016recommender}. Metryka ta nagradza wyższe pozycje trafnych obiektów na liście poprzez wprowadzenie logarytmicznego czynnika dyskontującego:
+\begin{equation}
+    \text{DCG}_u@N = \sum_{k=1}^{N} \frac{\mathbf{1}\left( i_k^{(u)} \in \mathcal{I}_u^{\text{test}} \right)}{\log_2(k + 1)}.
+\end{equation}
+
+
+Aby umożliwić porównywanie wyników pomiędzy użytkownikami o różnej liczbie istotnych obiektów, wartość $\text{DCG}_u@N$ normalizuje się poprzez idealną wartość tej metryki ($\text{IDCG}_u@N$), będącą wynikiem dla optymalnego uporządkowania, w którym wszystkie trafne obiekty znajdują się na najwyższych pozycjach listy:
+\begin{equation}
+    \text{IDCG}_u@N = \sum_{k=1}^{\min\left(N,\, |\mathcal{I}_u^{\text{test}}|\right)} \frac{1}{\log_2(k + 1)}.
+\end{equation}
+
+Ostateczna wartość $\text{NDCG}@N$ obliczana jest jako średnia ze znormalizowanych wartości dla wszystkich użytkowników:
+\begin{equation}
+    \text{NDCG}@N = \frac{1}{|\mathcal{U}|} \sum_{u \in \mathcal{U}} \frac{\text{DCG}_u@N}{\text{IDCG}_u@N}.
+\end{equation}
+
+$\text{NDCG}@N$ jest współcześnie jedną z najczęściej stosowanych metryk ewaluacyjnych w analizie rekomendacji rankingowych~\cite{ricci2015recommender,kang2018self,sun2019bert4rec}. Jej kluczową zaletą jest jednoczesne uwzględnienie trafności rekomendacji oraz pozycji obiektu na liście, a także odporność na zróżnicowaną liczbę interakcji testowych poszczególnych użytkowników.
+
+\section{Metryki pokrycia katalogu, popularności i różnorodności}
+
+Maksymalizacja trafności rekomendacji nie jest jedynym kryterium decydującym o sukcesie systemu rekomendacyjnego~\cite{kaminskas2016diversity}. Algorytmy optymalizujące metryki rankingowe mają tendencję do generowania rekomendacji zachowawczych. W~efekcie system może ograniczać się do wąskiego podzbioru katalogu, złożonego z~najpopularniejszych pozycji, bądź oferować listę obiektów bardzo do siebie podobnych. Przykładowo, przedstawienie użytkownikowi listy złożonej wyłącznie z~kolejnych odsłon tej samej serii, mimo wysokiego prawdopodobieństwa ich trafności, ogranicza możliwość odkrywania nowych treści. Z tego powodu ewaluacja systemów rekomendacyjnych wymaga uwzględnienia miar oceniających pokrycie katalogu, obciążenie popularnością oraz różnorodność wygenerowanych rekomendacji.
+
+\subsection{Pokrycie katalogu}
+
+Pokrycie katalogu mierzy odsetek wszystkich dostępnych w systemie obiektów, które zostały zarekomendowane co najmniej jednemu użytkownikowi na liście długości $N$:
+\begin{equation}
+    \text{Coverage}@N = \frac{\left| \bigcup_{u \in \mathcal{U}} \mathcal{R}_u^N \right|}{|\mathcal{I}|}.
+\end{equation}
+Niska wartość tej metryki wskazuje na zjawisko, w którym znaczna część asortymentu pozostaje całkowicie niewidoczna dla użytkowników. Jest to szczególnie częste w~zbiorach o~rozkładzie długiego ogona, w~których większość interakcji koncentruje się na niewielkiej liczbie popularnych obiektów.
+
+\subsection{Obciążenie popularnością}
+
+Do oceny stopnia obciążenia systemu popularnością stosuje się metrykę $\Delta\text{GAP}@N$ (ang. \textit{delta group average popularity})~\cite{abdollahpouri2019unfairness}. Wyznacza ona względną różnicę pomiędzy średnią popularnością obiektów występujących na wygenerowanych listach rekomendacji Top-$N$ a średnią popularnością obiektów znajdujących się w~historycznych profilach użytkowników. Jej zdefiniowanie wymaga wcześniejszego wprowadzenia kilku powiązanych pojęć.
+
+Popularność pojedynczego obiektu $i \in \mathcal{I}$ definiuje się jako stosunek liczby użytkowników, którzy weszli z~nim w~interakcję w~zbiorze treningowym, do całkowitej liczby użytkowników:
+\begin{equation}
+    \text{pop}(i) = \frac{\left| \{ u \in \mathcal{U} \;\mid\; i \in \mathcal{I}_u^{\text{train}} \} \right|}{|\mathcal{U}|}.
+\end{equation}
+
+Na podstawie tak zdefiniowanej popularności pojedynczych obiektów wyznacza się średnią popularność rekomendacji ($\text{GAP}_{\text{rec}}@N$) oraz średnią popularność profili użytkowników ($\text{GAP}_{\text{profile}}$):
+\begin{equation}
+    \text{GAP}_{\text{rec}}@N = \frac{1}{|\mathcal{U}|} \sum_{u \in \mathcal{U}} \frac{1}{N} \sum_{i \in \mathcal{R}_u^N} \text{pop}(i),
+\end{equation}
+
+\begin{equation}
+    \text{GAP}_{\text{profile}} = \frac{1}{|\mathcal{U}|} \sum_{u \in \mathcal{U}} \frac{1}{\left| \mathcal{I}_u^{\text{train}} \right|} \sum_{i \in \mathcal{I}_u^{\text{train}}} \text{pop}(i).
+\end{equation}
+
+Ostateczna wartość wskaźnika $\Delta\text{GAP}@N$ stanowi względną zmianę średniej popularności wygenerowanych rekomendacji w~odniesieniu do dotychczasowych preferencji użytkowników:
+\begin{equation}
+    \Delta\text{GAP}@N = \frac{\text{GAP}_{\text{rec}}@N - \text{GAP}_{\text{profile}}}{\text{GAP}_{\text{profile}}}.
+\end{equation}
+
+Warto zaznaczyć, że w~oryginalnej pracy~\cite{abdollahpouri2019unfairness} wartość $\Delta\text{GAP}@N$ obliczana jest osobno dla zdefiniowanego wcześniej podziału użytkowników na grupy. W~pracy metrykę tę stosuje się w~ujęciu globalnym, obliczając ją dla całego zbioru użytkowników $\mathcal{U}$.
+
+Wartość $\Delta\text{GAP}@N > 0$ oznacza, że średnia popularność rekomendowanych obiektów jest wyższa niż średnia popularność pozycji obecnych w~profilach użytkowników, co wskazuje na tendencję systemu do faworyzowania pozycji popularnych. Wartość $\Delta\text{GAP}@N < 0$ świadczy natomiast o~tym, że algorytm częściej rekomenduje pozycje bardziej niszowe niż te występujące dotychczas w~historii interakcji. Wartość zerowa jest wartością neutralną i~pożądaną, oznacza bowiem zgodność poziomu popularności rekomendacji z~profilem użytkownika. Wartości dodatnie i~ujemne oznaczają odchylenie w~przeciwnych kierunkach, a~ich interpretacja wymaga uwzględnienia pozostałych miar, ponieważ zarówno nadmierne faworyzowanie pozycji popularnych, jak i~systematyczne przesunięcie rekomendacji w~stronę pozycji niszowych mogą obniżać ich użyteczność.
+
+\subsection{Różnorodność wewnątrzlistowa}
+
+Różnorodność wewnątrzlistowa (ang. \textit{Intra-List Diversity}, ILD) mierzy stopień zróżnicowania obiektów znajdujących się na pojedynczej liście Top-$N$. W takim podejściu istotny jest wybór przestrzeni, w której wyznaczane jest podobieństwo pomiędzy obiektami. Naturalnym kandydatem wydają się wektory czynników ukrytych wyuczone przez model, jednak takie podejście uniemożliwia porównywanie wyników pomiędzy modelami. Przestrzeń czynników każdego modelu konstruowana jest niezależnie, jej wymiarowość może się różnić, a wektory ukryte zależą zarówno od algorytmu uczenia, jak i przyjętej regularyzacji. Wartości uzyskane w różnych przestrzeniach nie są z tego powodu porównywalne.
+
+Z tego powodu w pracy podobieństwo obiektów wyznaczane jest na podstawie ich współwystępowania w zbiorze treningowym. Podstawą obliczeń jest binarna macierz preferencji $\mathbf{P} \in \{0, 1\}^{|\mathcal{U}| \times |\mathcal{I}|}$, w~której $p_{ui} = 1$ wtedy i~tylko wtedy, gdy użytkownik $u$ wszedł w interakcję z obiektem $i$. Kolumna $\mathbf{p}_i \in \{0,1\}^{|\mathcal{U}|}$ stanowi wówczas wektor obecności obiektu $i$ w profilach wszystkich użytkowników. Podobieństwo dwóch obiektów definiuje się jako podobieństwo cosinusowe odpowiadających im kolumn, a odpowiadającą mu odległość jako:
+
+\begin{equation}
+    d_{\text{cos}}(i, j) = 1 - \frac{\mathbf{p}_i \cdot \mathbf{p}_j}{\|\mathbf{p}_i\|_2 \|\mathbf{p}_j\|_2}.
+\end{equation}
+
+Miara ta przyjmuje wartość $0$ dla obiektów obecnych w~profilach dokładnie tych samych użytkowników oraz $1$ dla obiektów, które nie mają ani jednego wspólnego użytkownika. Dla obiektów pozbawionych interakcji w~zbiorze treningowym podobieństwo pozostaje nieokreślone, dlatego przyjmuje się dla nich odległość równą $1$.
+
+Średnia różnorodność dla pojedynczego użytkownika $u$ wyznaczana jest jako uśredniona odległość dla wszystkich unikalnych par obiektów znajdujących się na jego liście rekomendacyjnej Top-$N$:
+
+\begin{equation}
+    \label{eq:ild_u}
+    \text{ILD}_u@N = \frac{2}{N(N - 1)} \sum_{k=1}^{N-1} \sum_{l=k+1}^{N} d_{\text{cos}}\left( i_k^{(u)}, i_l^{(u)} \right).
+\end{equation}
+
+Wzór \eqref{eq:ild_u} stanowi wariant miary różnorodności analizowanej przez Hurleya i Zhanga~\cite{hurley2011novelty}. Ostateczna wartość metryki $\text{ILD}@N$ stanowi średnią arytmetyczną z wartości wyznaczonych dla wszystkich użytkowników:
+
+\begin{equation} 
+    \text{ILD}@N = \frac{1}{|\mathcal{U}|} \sum_{u \in \mathcal{U}} \text{ILD}_u@N.
+\end{equation}
+
+Wyższa wartość metryki oznacza, że obiekty prezentowane na pojedynczej liście rzadziej występują wspólnie w profilach użytkowników, co ogranicza ryzyko rekomendowania podobnych obiektów. Ponieważ podobieństwo wyznaczane jest we wspólnej dla wszystkich modeli przestrzeni współwystępowania, wartości $\text{ILD}@N$ pozostają bezpośrednio porównywalne pomiędzy modelami różniącymi się zarówno algorytmem uczenia, jak i liczbą czynników ukrytych.
+
+Miara ta stanowi dopełnienie pokrycia katalogu. Podczas gdy pokrycie opisuje
+wykorzystanie katalogu w~skali całej bazy użytkowników, różnorodność
+wewnątrzlistowa odnosi się do zróżnicowania pojedynczego zestawu rekomendacji.
+Obie miary opisują zatem różne aspekty tego samego zjawiska i~mogą przyjmować
+rozbieżne wartości: model rekomendujący szeroki wycinek katalogu może
+jednocześnie budować listy złożone z~obiektów silnie ze sobą powiązanych,
+a~model o~niskim pokryciu może układać listy wewnętrznie zróżnicowane.
+Z~tego względu interpretacja obu metryk wymaga ich łącznego rozpatrywania.

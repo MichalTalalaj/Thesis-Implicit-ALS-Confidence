@@ -1,0 +1,35 @@
+\chapter{Wstęp}
+
+Systemy rekomendacyjne stanowią dziś nieodłączny element serwisów internetowych. Pośredniczą w wyborze filmów, muzyki, książek i produktów, a wraz ze wzrostem liczby dostępnych pozycji ich rola systematycznie rośnie: w katalogach liczących setki tysięcy elementów samodzielne odnalezienie treści odpowiadających preferencjom użytkownika przestaje być wykonalne. Mimo powszechności tych systemów mechanizmy stojące za generowanymi przez nie rekomendacjami pozostają dla większości odbiorców nieprzejrzyste, podobnie jak ograniczenia, którym podlegają.
+
+W pracy dyplomowej przedstawiono wybrane algorytmy rekomendacyjne o ugruntowanej pozycji w literaturze, charakteryzujące się przy tym stosunkowo przejrzystą interpretacją. Szczególną uwagę poświęcono metodom filtracji kolaboratywnej przeznaczonym dla niejawnej informacji zwrotnej, które w zastosowaniach praktycznych stanowią przypadek dominujący~\cite{aggarwal2016recommender}. Omówiono również metody oceny jakości rekomendacji, obejmujące zarówno miary trafności rankingu, jak i miary wykraczające poza trafność.
+
+\section{Motywacja i problem badawczy}
+
+W metodzie implicit ALS zaproponowanej przez Hu, Korena i Volinsky'ego~\cite{hu2008implicit} obserwacje wchodzą do modelu z wagami pewności, wyznaczanymi jako funkcja intensywności interakcji użytkownika z obiektem. Wybór postaci tej funkcji bezpośrednio określa, w jakim stopniu model różnicuje obserwacje o różnej intensywności, a tym samym wpływa na to, czego model uczy się z danych. W~praktyce badawczej wybór ten bywa jednak przyjmowany jako założenie, bez weryfikacji jego zasadności. W~pracach wykorzystujących implicit ALS na danych platformy Steam~\cite{cheuque2019steam,bayram2021game} stosowana jest domyślna postać liniowa, a~analiza wpływu przyjętego przekształcenia sygnału pozostaje poza zakresem rozważań.
+
+Problem ten pogłębiają dwie dodatkowe okoliczności. Po pierwsze, dane wejściowe poddawane bywają daleko idącej filtracji, motywowanej dążeniem do zwiększenia gęstości macierzy interakcji~\cite{cheuque2019steam}. Zabiegi takie zawężają populację do najbardziej aktywnych użytkowników i najpopularniejszych obiektów, przez co uzyskane wyniki trudno odnieść do warunków rzeczywistych. Po drugie, w literaturze modyfikacje istniejących algorytmów ustępują miejsca propozycjom nowych architektur, mimo że starannie dostrojone metody klasyczne pozostają konkurencyjne wobec rozwiązań znacznie bardziej złożonych~\cite{dacrema2019progress,rendle2020neural}.
+
+\section{Cel, zakres i pytania badawcze}
+
+Celem pracy jest zbadanie wpływu postaci funkcji pewności na jakość rekomendacji generowanych przez model implicit ALS oraz określenie, w jakim stopniu sposób ważenia obserwacji decyduje o jakości rekomendacji w porównaniu z wyborem klasy modelu.
+
+Zakres pracy objął formalne wprowadzenie algorytmów implicit ALS oraz Bayesian Personalized Ranking, a także metod oceny rekomendacji typu top-$N$. Zdefiniowano miary trafności rankingu oraz miary wykraczające poza trafność. Następnie przeprowadzono eksperymenty na rzeczywistych danych pochodzących z platformy Steam, obejmujących biblioteki gier użytkowników wraz z łącznym zarejestrowanym czasem rozgrywki. Porównano ze sobą pięć wariantów funkcji pewności w modelu implicit ALS, zestawiając je z modelem Bayesian Personalized Ranking oraz z rekomendacjami opartymi na popularności, a następnie przeanalizowano kompromisy, jakie niosą ze sobą poszczególne rozwiązania.
+
+Sformułowano następujące pytania badawcze:
+
+\begin{itemize}
+    \item[\textbf{PB1.}] Czy sposób przekształcenia czasu gry na wagi pewności wpływa na jakość rekomendacji modelu implicit ALS?
+
+    \item[\textbf{PB2.}] Czy różnicowanie wag pewności według czasu gry przewyższa wariant o stałej wadze, niezależnej od intensywności interakcji?
+
+    \item[\textbf{PB3.}] W jaki sposób wybór funkcji pewności przekłada się na miary wykraczające poza trafność, takie jak pokrycie katalogu, różnorodność wewnątrzlistową i obciążenie popularnością, oraz czy występuje kompromis między trafnością a tymi miarami?
+
+    \item[\textbf{PB4.}] Czy o jakości rekomendacji decyduje w większym stopniu sposób ważenia obserwacji, czy klasa modelu i postać funkcji celu?
+\end{itemize}
+
+\section{Struktura pracy}
+
+Praca została podzielona na siedem rozdziałów. Rozdziały drugi i trzeci stanowią wprowadzenie teoretyczne niezbędne do zrozumienia działania analizowanych modeli oraz metod ich oceny: omówiono w nich model Funk SVD jako punkt wyjścia dla faktoryzacji macierzy, następnie implicit ALS oraz Bayesian Personalized Ranking, a w dalszej kolejności miary precyzji, pełności, NDCG, pokrycia katalogu, różnorodności wewnątrzlistowej oraz różnicy w popularności rekomendacji.
+
+Kolejne rozdziały poświęcono części empirycznej. Rozdział czwarty zawiera analizę eksploracyjną wykorzystanego zbioru danych wraz z omówieniem wyzwań, jakie ze sobą niesie. Rozdział piąty opisuje przyjętą metodologię badania, rozdział szósty przedstawia uzyskane wyniki wraz z ich interpretacją, natomiast rozdział siódmy zawiera podsumowanie, odpowiedzi na postawione pytania badawcze oraz wnioski końcowe.

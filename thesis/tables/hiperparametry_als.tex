@@ -1,0 +1,16 @@
+\begin{table}[htbp]
+\centering
+\caption{Najlepsze hiperparametry wariantów ALS wybrane na zbiorze walidacyjnym}
+\label{tab:hiperparametry-als}
+\begin{tabular}{lrrrrr}
+\toprule
+Wariant & Czynniki & Iteracje & $\alpha$ & $\beta$ & Regularyzacja \\
+\midrule
+Liniowa & 80 & 30 & $9.948\cdot 10^{-7}$ & - & 0.003588 \\
+Logarytmiczna & 24 & 30 & 0.000571 & - & 0.130920 \\
+Logarytmiczna z saturacją & 24 & 30 & 0.024390 & - & 0.169714 \\
+Logarytmiczna z przesunięciem $\beta$ & 48 & 30 & 0.389185 & 108.284 & 0.010565 \\
+\bottomrule
+\end{tabular}
+\caption*{\footnotesize Źródło: opracowanie własne na podstawie wyników Optuny.}
+\end{table}

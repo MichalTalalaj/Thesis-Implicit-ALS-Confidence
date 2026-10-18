@@ -1,0 +1,87 @@
+\chapter{Wnioski}
+
+\section{Podsumowanie eksperymentów}
+
+Zakres eksperymentu objął dostrajanie hiperparametrów pięciu wariantów modeli implicit ALS z różnymi wagami pewności (liniowa, logarytmiczna, logarytmiczna z saturacją, logarytmiczna z przesunięciem $\beta$ oraz stała), modelu BPR oraz popularnościowego jako odniesienie. Dobór hiperparametrów pokazał, że w przypadku modeli iALS optymalny hiperparametr $\alpha$ dążył do zera, co w praktyce redukowało sygnał o preferencji płynący z \texttt{playtime\_forever} do wariantu binarnego (użytkownik posiada/nie posiada gry w bibliotece). Jedynym wyjątkiem był model z $c_{ui} = 1 + \alpha \log(1 + r_{ui} + \beta)$, w którym optymalna wartość $\alpha$ nie leżała w otoczeniu zera. Analiza kształtu tego przekształcenia wykazała jednak, że przy $\beta$ równym 108,284 funkcja działa w obszarze o niewielkiej krzywiźnie: dla mediany czasu gry wynoszącej 35 minut wartość $c_{ui}$ wynosi 2,94 wobec 2,83 dla obserwacji bez zarejestrowanego czasu rozgrywki. Wyższa wartość $\alpha$ podnosiła zatem przede wszystkim ogólny poziom pewności, w mniejszym stopniu różnicując obserwacje między sobą.
+
+Obserwacja ta doprowadziła do zbadania granicznego przypadku całej rodziny, czyli wariantu $c_{ui} = 1 + \gamma$, całkowicie pomijającego czas gry. Wariant ten osiągnął najwyższe wyniki metryk rankingowych zarówno na zbiorze walidacyjnym, jak i testowym, poprawiając \ndcg{} o 6,2\% względem wariantu logarytmicznego oraz o 8,1\% względem liniowego. Osiągnął on również największe pokrycie katalogu wśród modeli implicit ALS. Wszystkie różnice okazały się istotne statystycznie (test Wilcoxona z korektą Holma-Bonferroniego, poziom istotności $= 0{,}05$), przy czym analiza wielkości efektu wykazała, że mediana sparowanej różnicy \ndcg{} we wszystkich porównaniach wynosi zero. Obserwowana przewaga ma zatem charakter zagregowany i nie przekłada się na przewidywalną poprawę jakości rekomendacji dla pojedynczego użytkownika.
+
+Badanie pokazało również kompromisy między jakością rankingową a miarami wykraczającymi poza trafność. Model BPR uzyskał ponad dwukrotnie większe pokrycie katalogu niż najlepszy z modeli iALS oraz wysoką różnorodność wewnątrzlistową, ale osiągnął to kosztem znacznie niższej trafności rekomendacji. Natomiast wariant liniowy, mimo najniższej jakości rankingowej w rodzinie iALS, cechuje się największą różnorodnością rekomendacji oraz zdolnością polecania obiektów mniej popularnych niż średnia popularność w zbiorze treningowym danego użytkownika, co jest nietypowym zachowaniem dla modelu opartego na faktoryzacji macierzy.
+
+Przeprowadzona analiza stabilności ze względu na losowe uruchomienia algorytmów oraz podziały danych wykazała wysoką powtarzalność wyników. Odchylenia standardowe metryk trafności nie przekraczały 0,2\% wartości średniej, co oznacza, że obserwowane różnice między wariantami nie wynikają z~losowości procedury.
+
+Powyższe wyniki pozwalają odpowiedzieć na postawione pytania badawcze.
+
+\section{Odpowiedzi na pytania badawcze}
+
+\textbf{PB1. Czy sposób przekształcenia czasu gry na wagi pewności wpływa na jakość rekomendacji modelu implicit ALS?}
+
+Tak, jednak w~kierunku odwrotnym do oczekiwanego. Różnica \ndcg{} między najlepszym a~najgorszym wariantem wynosi 0,0266, co odpowiada poprawie o~8,1\% względem wariantu liniowego. Analiza sparowanych różnic na poziomie użytkownika potwierdza istotność tego efektu: średnia różnica wynosi 0,0266 przy 95-procentowym przedziale ufności $[0{,}0248;\ 0{,}0284]$. Wyższe wyniki osiągnęły jednak te przekształcenia, które w mniejszym stopniu uzależniały wagi pewności od zarejestrowanego czasu rozgrywki. Najwyższą jakość rekomendacji uzyskał wariant całkowicie pomijający tę zmienną, najniższą zaś wariant liniowy, przypisujący wagi proporcjonalne do czasu gry. Należy przy tym podkreślić, że porównywane warianty dostrojono niezależnie, przez co różnią się również liczbą czynników ukrytych oraz siłą regularyzacji. Wniosek dotyczy zatem tego, który wariant po dostrojeniu prowadzi do najlepszych rekomendacji, nie zaś izolowanego wpływu samego przekształcenia sygnału.
+
+\textbf{PB2. Czy różnicowanie wag pewności według czasu gry przewyższa wariant o stałej wadze, niezależnej od intensywności interakcji?}
+
+Nie. Wariant o stałej funkcji pewności uzyskał najwyższą wartość \ndcg{} na zbiorze testowym (0,3565), wyprzedzając wariant z przesunięciem $\beta$ (0,3517) oraz pozostałe przekształcenia. Dwa najlepsze warianty łączy podniesienie pewności obserwacji o zerowym czasie gry, którym pozostałe przekształcenia przypisują wartość równą 1. W badanym zbiorze monotoniczne uwzględnienie zmiennej \texttt{playtime\_forever} nie przyniosło zatem wartości dodanej wykraczającej poza sam wzrost wagi zaobserwowanych par użytkownik--gra.
+
+\textbf{PB3. W jaki sposób wybór funkcji pewności przekłada się na miary wykraczające poza trafność i czy występuje kompromis między trafnością a tymi miarami?}
+
+Odpowiedź różni się w zależności od rozważanej miary. W przypadku pokrycia katalogu kompromis w obrębie rodziny implicit ALS nie występuje: warianty o najwyższej trafności osiągnęły najwyższe pokrycie (0,1374 oraz 0,1313 wobec 0,0762 dla wariantów logarytmicznych). Wartości $\Delta$GAP wskazują natomiast, że wszystkie warianty poza liniowym rekomendują pozycje popularniejsze niż wynikałoby to z profilu użytkownika, przy czym dwa czołowe warianty wykazują umiarkowane obciążenie popularnością (0,4210 oraz 0,4191) wobec wartości powyżej 0,54 dla wariantów logarytmicznych. Warto podkreślić, że ujemna wartość $\Delta$GAP wariantu liniowego ($-0{,}2112$) stanowi odchylenie od punktu neutralnego tak samo jak wartości dodatnie, jedynie w przeciwnym kierunku, i również niekoniecznie jest pożądana. W~przypadku różnorodności wewnątrzlistowej wartości uzyskane w~rodzinie implicit ALS układają się zgodnie z~liczbą czynników ukrytych, dobieraną niezależnie dla każdego wariantu. Nie jest to ograniczenie samej metryki, która wyznaczana jest we~wspólnej dla wszystkich modeli przestrzeni współwystępowania, lecz obserwacja dotycząca zachowania modeli. Model BPR mimo najwyższej liczby czynników osiąga różnorodność niższą niż wariant liniowy. Rozdzielenie wpływu wymiarowości od wpływu samej funkcji pewności wymagałoby jednak eksperymentu przy ustalonej liczbie czynników.
+
+\textbf{PB4. Czy o jakości rekomendacji decyduje w większym stopniu sposób ważenia obserwacji, czy klasa modelu i postać funkcji celu?}
+
+Uzyskane wyniki wskazują na przewagę drugiego z tych czynników. Różnica \ndcg{} między najlepszym wariantem implicit ALS a modelem BPR wynosi 0,0862 i jest ponad trzykrotnie większa niż cały rozstęp wewnątrz rodziny implicit ALS, obejmujący wartości od 0,3299 do 0,3565. Oba porównywane modele traktują przy tym interakcje w sposób nieuwzględniający czasu gry, a~mimo to dzieli je znacznie większa różnica niż którekolwiek dwa warianty funkcji pewności. Także~w~tym przypadku porównanie dotyczy modeli dostrojonych niezależnie, obejmuje zatem łączny efekt zmiany funkcji celu i~towarzyszącego jej doboru pozostałych hiperparametrów. Odpowiedź nie jest jednak jednoznaczna: model BPR uzyskał pokrycie katalogu na poziomie 0,3039, ponad dwukrotnie przewyższające najlepszy wariant implicit ALS. Wybór klasy modelu determinuje zatem nie tylko poziom jakości rekomendacji, lecz także kompromisy między poszczególnymi jej aspektami.
+
+\section{Najważniejsze wnioski praktyczne i metodologiczne}
+
+\subsection{Wnioski praktyczne}
+
+Proste przekształcenia funkcji pewności w przypadku danych o dużym zakresie są podatne na dwa przeciwstawne błędy. Liniowa funkcja jest wrażliwa na wartości odstające, natomiast przekształcenia logarytmiczne są wrażliwe na szum wśród małych wartości. W obu przypadkach proces optymalizacji hiperparametrów reagował w ten sam sposób, dobierając wartości $\alpha$ na tyle małe, że przekształcenie sprowadzało się w praktyce do postaci niemal stałej.
+
+W badanym zbiorze informacja o~samym posiadaniu gry wystarczyła, by uzyskać rekomendacje nie gorsze niż przy uwzględnieniu czasu gry, a~dodatkowy sygnał płynący z~długości interakcji nie przełożył się na ich jakość. Kluczowe znaczenie ma natomiast poziom wagi przypisanej zaobserwowanym interakcjom, stanowiący pełnoprawny hiperparametr wymagający strojenia niezależnie od postaci przekształcenia.
+
+Wybór modelu powinien wynikać z~przyjętych celów systemu rekomendacyjnego. Jeżeli priorytetem jest trafność rekomendacji, wariant iALS o stałej funkcji pewności jest najlepszym wyborem, oferując jednocześnie najwyższe pokrycie katalogu w swojej rodzinie. W przypadku gdy cenniejsze jest szerokie pokrycie katalogu oraz zróżnicowanie rekomendacji między użytkownikami, warto rozważyć model BPR, akceptując wyraźnie niższą trafność.
+
+Redukcja regularyzacji i zwiększenie wymiaru przestrzeni cech ukrytych $f$ mogą zmniejszać obciążenie popularnością $\Delta$GAP, co zaobserwowano w przypadku wariantu liniowego ALS oraz modelu BPR, osiągających ujemne wartości tej metryki. Należy jednak zachować ostrożność przy interpretacji tego efektu: wariant liniowy uzyskał jednocześnie najwyższą różnorodność rekomendacji i najniższą trafność w swojej rodzinie, co sugeruje, że obserwowane wartości mogą wynikać ze słabszego dopasowania modelu, a nie z lepszego rozpoznania niszowych preferencji.
+
+\subsection{Wnioski metodologiczne}
+
+Dokładna analiza wrażliwości hiperparametrów pozwoliła zinterpretować nie tylko to, co osiąga dany model, ale również dlaczego otrzymywane są takie wyniki. Dodatkowo wizualizacja funkcji pewności wraz z zakresem przyjmowanych przez nie wartości umożliwiła wykrycie, że przekształcenia formalnie różnicujące sygnał działają w praktyce w wąskim przedziale, czego sama wartość metryki nie ujawnia.
+
+Szczególnie istotne okazało się uwzględnienie wariantu granicznego, pomijającego badaną zmienną w całości. Bez niego obserwowana poprawa kolejnych przekształceń zostałaby przypisana lepszemu odwzorowaniu siły preferencji, podczas gdy wyniki wskazują, że była związana przede wszystkim z podniesieniem ogólnego poziomu pewności.
+
+Nie mniej ważna jest konieczność wielowymiarowej oceny modeli rekomendacyjnych, uwzględniającej zarówno metryki trafności, jak i metryki wykraczające poza nią. Poleganie wyłącznie na \ndcg{} daje niepełny obraz jakości systemu rekomendacyjnego. Istotny jest przy tym dobór samych metryk: pierwotnie rozważana miara różnorodności, oparta na odległościach w przestrzeni czynników ukrytych, okazała się nieporównywalna między modelami o odmiennej wymiarowości, co wymusiło jej zastąpienie miarą opartą na współwystępowaniu obiektów we wspólnej dla wszystkich modeli przestrzeni.
+
+W analizie należy również uwzględnić testy stabilności modelu ze względu na losowość podziału danych oraz inicjalizacji algorytmów, jak i testy istotności statystycznej różnic. Przy dużej liczbie użytkowników sama istotność statystyczna nie jest jednak wystarczającą podstawą do wnioskowania i wymaga uzupełnienia miarami wielkości efektu wraz z przedziałami ufności.
+
+\section{Kierunki dalszych badań}
+
+Kierunkiem wynikającym bezpośrednio z uzyskanych wyników, stanowiącym autorską propozycję, jest zbadanie niemonotonicznych funkcji pewności. Wszystkie przekształcenia rozważane w niniejszej pracy były monotonicznie rosnące, przyjmując założenie, że dłuższy czas gry oznacza silniejszą preferencję. Założenie to może jednak nie odpowiadać rzeczywistym zachowaniom użytkowników. W szczególności krótka interakcja, obejmująca kilkanaście czy kilkadziesiąt minut rozgrywki, może świadczyć nie o słabej preferencji, lecz o uruchomieniu gry i szybkiej rezygnacji z niej, stanowiąc tym samym sygnał negatywny. W takim ujęciu obserwacje o zerowym czasie gry, odpowiadające samemu posiadaniu tytułu w bibliotece, niosłyby silniejszy sygnał preferencji niż obserwacje o bardzo krótkim czasie rozgrywki. Funkcja pewności odzwierciedlająca ten wzorzec musiałaby przypisywać obniżone wagi w wąskim przedziale niskich wartości \texttt{playtime\_forever}, a rosnące dopiero powyżej pewnego progu. Zbadanie takiego wariantu pozwoliłoby zweryfikować, czy brak wartości dodanej z czasu gry zaobserwowany w niniejszej pracy wynika z samej zmiennej, czy z założenia o monotonicznym charakterze jej związku z preferencją.
+
+Rozwinięciem tej propozycji jest konstrukcja funkcji pewności, w~której poziom bazowy oraz człon zależny od czasu gry sterowane byłyby niezależnymi parametrami. W~wariancie z~przesunięciem $\beta$ obie składowe pozostają sprzężone: ten sam parametr wyznacza wartość przypisaną obserwacjom zerowym i~stopień kompresji różnic między pozostałymi. Nie pozwala to rozstrzygnąć, czy człon zależny od czasu gry obniżał jakość rekomendacji, czy jedynie nie wnosił poprawy przy jednoczesnym ustawieniu poziomu bazowego poniżej wartości optymalnej. Rozdzielenie tych parametrów, w~połączeniu z~dopuszczeniem niemonotonicznej postaci członu zależnego od czasu gry, umożliwiłoby zbadanie obu mechanizmów osobno.
+
+Wyniki metryk $\Delta$GAP i pokrycia pokazały, że modele ALS (poza wariantem liniowym) mają tendencję do faworyzowania popularnych pozycji. Potencjalnym rozwiązaniem byłoby wprowadzenie do funkcji $c_{ui}$ lub do funkcji straty czynnika odwrotnie proporcjonalnego do popularności danego obiektu. Metody tego typu są opisywane w literaturze jako debiasing z wykorzystaniem odwrotnego ważenia prawdopodobieństwa ekspozycji (ang. \textit{inverse propensity scoring}, IPS), gdzie waga interakcji jest skalowana odwrotnie do prawdopodobieństwa, że dany obiekt zostałby zaobserwowany przez użytkownika niezależnie od jego rzeczywistych preferencji~\cite{schnabel2016recommendations}. W praktyce prawdopodobieństwo to jest zwykle estymowane na podstawie popularności obiektu, ponieważ użytkownicy z większym prawdopodobieństwem wchodzą w interakcję z obiektami popularnymi niezależnie od indywidualnych preferencji. Taka transformacja mogłaby podnosić wagę interakcji z niszowymi grami, kompensując mechanizm, przez który obecne funkcje marginalizują rzadkie obserwacje.
+
+Poza modyfikacją samej funkcji pewności, alternatywnym kierunkiem jest wykorzystanie dopełniających się właściwości testowanych rodzin modeli poprzez ich połączenie w model hybrydowy. Przykładowo model BPR generowałby szeroki wachlarz kandydatów ze względu na większe pokrycie zbioru, a następnie przeprowadzany byłby ponowny ranking przez model iALS cechujący się większą trafnością.
+
+Uzupełnieniem kierunków wynikających z~głównych wniosków pracy są badania wskazane jako ograniczenia przyjętej metodologii:
+
+\begin{itemize}
+    \item segmentację użytkowników według liczby posiadanych interakcji,
+    umożliwiającą zweryfikowanie hipotezy o~wyższej precyzji wariantu liniowego
+    dla użytkowników o~większej aktywności;
+
+    \item uwzględnienie różnic w~zaangażowaniu wynikających ze specyfiki gatunków. Godzina spędzona w~krótkiej produkcji niezależnej oznacza inny poziom zainteresowania niż godzina w~grze wieloosobowej o~dużej regrywalności, tymczasem rozważane funkcje pewności przypisują obu tym obserwacjom identyczną wagę;
+
+    \item eksperyment przy ustalonej, jednakowej liczbie czynników ukrytych dla
+    wszystkich wariantów, pozwalający rozdzielić wpływ wymiarowości od wpływu
+    samej funkcji pewności na metryki różnorodności i~pokrycia. Przeszukanie przestrzeni obejmującej łącznie parametry funkcji pewności, siłę regularyzacji oraz liczbę czynników ukrytych umożliwiłoby ponadto ustalenie, w~jakim stopniu wielkości te oddziałują na siebie wzajemnie;
+
+    \item powtórzenie eksperymentu na danych ograniczonych do interakcji z niezerowym czasem rozgrywki, stanowiących około dwóch trzecich zbioru, oraz zbadanie wrażliwości wyników na przyjęte progi filtracji. Pozwoliłoby to ustalić, czy brak wartości dodanej wynika z~właściwości samej zmiennej, czy z~decyzji podjętych na etapie przygotowania danych;
+
+    \item porównanie dostrojonego wariantu implicit ALS z~modelami neuronowymi,
+    nawiązujące do wyników przedstawionych w~pracy~\cite{rendle2021revisiting};
+
+    \item walidację uzyskanych wyników na innych zbiorach danych i~domenach,
+    pozwalającą ustalić, czy zaobserwowany brak przewagi wariantów
+    różnicujących jest właściwością uniwersalną, czy wynika z~charakterystyki
+    rozkładu długości interakcji w~badanym zbiorze.
+\end{itemize}

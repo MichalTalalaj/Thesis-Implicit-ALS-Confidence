@@ -1,0 +1,20 @@
+\begin{table}[htbp]
+\centering
+\caption{Wyniki modeli na zbiorze testowym}
+\label{tab:wyniki-glowne}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lrrrrrrr}
+\toprule
+Model & Precision@10 & Recall@10 & NDCG@10 & Coverage@10 & Delta GAP@10 & Diversity@10 & Użytkownicy \\
+\midrule
+Popularność & 0.0965 & 0.1783 & 0.1855 & 0.0087 & 1.4233 & - & 62944 \\
+ALS liniowa & $0.1841\pm0.0003$ & $0.2642\pm0.0005$ & $0.3299\pm0.0005$ & $0.1178\pm0.0007$ & $-0.2112\pm0.0016$ & $0.7854\pm0.0063$ & $62944\pm0$ \\
+ALS logarytmiczna & $0.1810\pm0.0001$ & $0.3019\pm0.0002$ & $0.3356\pm0.0003$ & $0.0762\pm0.0003$ & $0.5433\pm0.0008$ & $0.5963\pm0.0159$ & $62944\pm0$ \\
+ALS log. z saturacją & $0.1809\pm0.0002$ & $0.3019\pm0.0003$ & $0.3354\pm0.0005$ & $0.0761\pm0.0002$ & $0.5443\pm0.0009$ & $0.5948\pm0.0152$ & $62944\pm0$ \\
+ALS log. z przesunięciem $\beta$ & $0.1956\pm0.0002$ & $0.3338\pm0.0003$ & $0.3517\pm0.0004$ & $0.1313\pm0.0009$ & $0.4191\pm0.0023$ & $0.7314\pm0.0174$ & $62944\pm0$ \\
+BPR & $0.1329\pm0.0003$ & $0.2614\pm0.0005$ & $0.2703\pm0.0006$ & $0.3039\pm0.0012$ & $-0.0789\pm0.0054$ & $0.5499\pm0.0009$ & $62944\pm0$ \\
+\bottomrule
+\end{tabular}%
+}
+\caption*{\footnotesize Źródło: opracowanie własne. Wartości dla ALS i BPR podano jako średnia $\pm$ odchylenie standardowe z pięciu uruchomień.}
+\end{table}

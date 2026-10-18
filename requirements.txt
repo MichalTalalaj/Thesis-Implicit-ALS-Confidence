@@ -1,0 +1,15 @@
+# Direct imports, pinned to readable recommender distribution metadata.
+# Installation and cross-platform resolution have not been tested.
+# Required research dataset (not a pip package): Steam Version 1 User and Item Data.
+# Download/location/checksum: data/requirements.json and docs/DATA.md.
+numpy==1.26.4
+pandas==3.0.2
+scipy==1.17.1
+implicit==0.7.2
+optuna==4.8.0
+matplotlib==3.10.9
+scikit-learn==1.8.0
+tqdm==4.67.3
+threadpoolctl==3.5.0
+jupyterlab==4.5.6
+ipykernel==7.2.0

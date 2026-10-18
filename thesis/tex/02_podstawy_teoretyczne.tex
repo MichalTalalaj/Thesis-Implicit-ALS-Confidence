@@ -1,0 +1,435 @@
+\chapter{Podstawy teoretyczne systemów rekomendacyjnych}
+
+\section{Zadanie rekomendacji Top-N}
+\label{sec:top_n_formulation}
+% Tutaj opisz:
+% - Definicję problemu (zbior uzytkowników, obiektów)
+% - Czym jest macierz interakcji
+% - Dlaczego w praktyce stosuje się ranking zamiast predykcji konkretnych ocen (np. RMSE vs Precision@K)
+
+Niech $\mathcal{U} = \{u_1, u_2, \dots, u_m\}$ oznacza zbiór $m$ użytkowników w systemie, a $\mathcal{I} = \{i_1, i_2, \dots, i_n\}$ zbiór $n$ dostępnych obiektów.
+
+Relacje zachodzące pomiędzy użytkownikami a obiektami reprezentowane są za pomocą macierzy obserwacji $\mathbf{R} \in \mathbb{R}^{m \times n}$. Pojedynczy element tej macierzy, oznaczany jako $r_{ui}$, reprezentuje zarejestrowaną aktywność użytkownika $u \in \mathcal{U}$ wobec obiektu $i \in \mathcal{I}$. W zależności od specyfiki przetwarzanych danych, $r_{ui}$ może przyjmować wartości z określonej wcześniej skali (np. ocena w skali 1--5) lub wartości nieograniczone (np. liczba zakupionych produktów, czas odtwarzania danego utworu). Istotną w praktyce cechą macierzy $\mathbf{R}$ jest wysoki stopień rzadkości rozumiany jako odsetek niezaobserwowanych interakcji. Jest to efekt przytłaczającej liczby dostępnych obiektów powodującej, że pojedynczy użytkownik wchodzi w interakcję jedynie z niewielkim ułamkiem całego asortymentu.
+
+Wczesne sformułowania problemu rekomendacyjnego, oparte na danych jawnych (ang. \textit{explicit feedback}), sprowadzały zadanie do predykcji ocen, gdzie celem algorytmu było odwzorowanie znanych wartości macierzy $\mathbf{R}$ \cite{aggarwal2016recommender}. Jakość takich modeli oceniano za pomocą miar błędu opartych na odchyleniu przewidywanej wartości od rzeczywistej oceny, takich jak błąd średniokwadratowy:
+
+\begin{equation}
+    \text{RMSE} = \sqrt{\frac{1}{|\mathcal{K}|} \sum_{(u,i) \in \mathcal{K}} \left(r_{ui} - \hat{r}_{ui}\right)^2},
+\end{equation}
+
+lub średni błąd bezwzględny:
+
+\begin{equation}
+    \text{MAE} = \frac{1}{|\mathcal{K}|} \sum_{(u,i) \in \mathcal{K}} \left|r_{ui} - \hat{r}_{ui}\right|.
+\end{equation}
+
+gdzie $\mathcal{K}$ oznacza zbiór znanych par $(u,i)$, dla których zarejestrowano obserwacje $r_{ui}$.
+
+W praktycznych zastosowaniach predykcja dokładnej wartości oceny okazała się jednak niewystarczająca \cite{cremonesi2010performance}. Z perspektywy użytkownika istotna jest kolejność rekomendowanych obiektów, a nie dokładna wartość $\hat{r}_{ui}$. Dodatkowo niska wartość RMSE i MAE nie gwarantuje wysokiej trafności, ponieważ model może precyzyjnie przewidywać oceny mało atrakcyjnych obiektów, jednocześnie popełniając błędy przy wyznaczaniu najlepiej dopasowanych rekomendacji. Z tego powodu współcześnie problem jest formułowany jako zadanie rekomendacji Top-$N$. Celem algorytmu jest wygenerowanie dla danego użytkownika $u$ spersonalizowanej oraz uporządkowanej listy $N$ obiektów z zestawu pozycji dotąd przez niego niezaobserwowanych:
+
+\begin{equation}
+    \text{Top-}N(u) = \left( i_1^{(u)}, i_2^{(u)}, \dots, i_N^{(u)} \right) \quad \text{gdzie} \quad i_k^{(u)} \in \mathcal{I} \setminus \mathcal{I}_u,
+\end{equation}
+
+gdzie $\mathcal{I}_u$ oznacza zbiór obiektów, z którymi użytkownik $u$ wszedł w interakcję. Lista ta jest sortowana według malejącej przewidywanej wartości $\hat{r}_{ui}$ będącej miarą użyteczności obiektu $i$ dla użytkownika $u$. W tak sformułowanym zadaniu ocena jakości algorytmów opiera się na miarach rankingowych opartych na pozycji obiektu na liście, takich jak precyzja na poziomie $K$ ($\text{Precision}@K$), pełność ($\text{Recall}@K$) czy znormalizowany zdyskontowany zysk skumulowany ($\text{NDCG}@K$).
+
+\section{Klasyczna faktoryzacja macierzy dla danych jawnych}
+
+\subsection{Model Funk SVD i funkcja celu}
+
+Modele iALS oraz BPR porównywane w pracy należą do rodziny modeli opartych na czynnikach ukrytych. Wykorzystują one metody faktoryzacji macierzy, które zostały spopularyzowane przez Simona Funka w ramach konkursu \textit{Netflix Prize}~\cite{funk2006netflix}. Podejście to zakłada, że relacje pomiędzy użytkownikami i obiektami mogą być modelowane poprzez ich reprezentacje w przestrzeni czynników ukrytych o wymiarze $f \ll \min(n,m)$. W przeciwieństwie do metod opartych na treści, wymagających jawnego zdefiniowania cech opisujących użytkowników oraz obiekty, faktoryzacja macierzy umożliwia automatyczne uczenie reprezentacji na podstawie historii interakcji. Dzięki temu ogranicza zależność od ręcznie projektowanych cech specyficznych dla danej domeny i pozwala stosować jednolity schemat modelowania w różnych dziedzinach. Szczegółowy opis modelu Funk SVD oraz wynikającej z niego funkcji celu przedstawiono na podstawie pracy \cite{koren2009matrix}.
+
+Macierz obserwacji $\mathbf{R} \in \mathbb{R}^{m \times n}$ jest aproksymowana poprzez iloczyn dwóch macierzy niskiego rzędu: macierzy reprezentacji użytkowników $\mathbf{X} \in \mathbb{R}^{m \times f}$ oraz macierzy reprezentacji obiektów $\mathbf{Y} \in \mathbb{R}^{n \times f}$. Wiersz $\mathbf{x}_u \in \mathbb{R}^f$ macierzy $\mathbf{X}$ określa stopień zainteresowania użytkownika $u$ poszczególnymi cechami ukrytymi, natomiast wiersz $\mathbf{y}_i \in \mathbb{R}^f$ macierzy $\mathbf{Y}$ opisuje obiekt $i$ pod kątem tych samych cech. W najprostszym wariancie modelu prognozowana wartość oceny $\hat{r}_{ui}$ wyznaczana jest jako iloczyn skalarny odpowiadających im wektorów:
+
+\begin{equation}    
+    \hat{r}_{ui} = \mathbf{x}_u^T \mathbf{y}_i = \sum_{k=1}^{f} x_{uk} y_{ik}
+\end{equation}
+
+W praktyce model ten rozszerza się o wyrazy wolne, które odpowiadają za systematyczne odchylenia takie jak ogólny poziom oceniania w systemie, tendencja konkretnego użytkownika do dawania wyższych/niższych ocen oraz średnia ocena danego obiektu:
+
+\begin{equation}
+    \hat{r}_{ui} = \mu + b_u + b_i + \mathbf{x}_u^T \mathbf{y}_i,
+\end{equation}
+
+gdzie $\mu \in \mathbb{R}$ oznacza średnią ocenę ze wszystkich obserwacji w zbiorze treningowym, $b_u \in \mathbb{R}$ jest odchyleniem użytkownika $u$, a $b_i \in \mathbb{R}$ odchyleniem obiektu $i$ od $\mu$. Należy podkreślić, że odchylenia nie są wyznaczane wprost jako średnie empiryczne, lecz estymowane łącznie z pozostałymi parametrami w procesie optymalizacji.
+
+Parametry modelu są dobierane na podstawie minimalizacji funkcji straty zdefiniowanej na zbiorze zaobserwowanych ocen $\mathcal{K} = \{(u, i) : r_{ui} \neq \text{null}\}$. Jako podstawowe kryterium dopasowania stosuje się błąd średniokwadratowy. Ze względu na wysoki stopień rzadkości macierzy $\mathbf{R}$ oraz dużą liczbę parametrów ($m \times f + n \times f + m + n$), model bezpośrednio optymalizowany pod kątem minimalizacji błędu na danych treningowych wykazuje silną tendencję do przeuczenia. Aby temu zapobiec, do funkcji celu wprowadza się człony regularyzacyjne oparte na normie $L_2$. Karzą one wysokie wartości współczynników w wektorach $\mathbf{x}_u$ oraz $\mathbf{y}_i$, a także w wyrazach wolnych $b_u, b_i$. Zapobiega to dominacji pojedynczych cech i zmniejsza wariancję modelu. Ostateczna funkcja celu $\mathcal{L}$ przyjmuje postać:
+
+\begin{equation}
+\begin{aligned}
+\mathcal{L}(\mathbf{X}, \mathbf{Y}, \mathbf{b})
+={}&
+\sum_{(u,i) \in \mathcal{K}}
+\left( r_{ui} - \mu - b_u - b_i - \mathbf{x}_u^T \mathbf{y}_i \right)^2 \\
+&+
+\lambda \left(
+\sum_{u} \|\mathbf{x}_u\|_2^2
++
+\sum_{i} \|\mathbf{y}_i\|_2^2
++
+\sum_{u} b_u^2
++
+\sum_{i} b_i^2
+\right),
+\end{aligned}
+\end{equation}
+
+gdzie parametr regularyzacji $\lambda \ge 0$ kontroluje siłę kary za złożoność modelu. Celem procesu optymalizacji jest znalezienie macierzy $\mathbf{X}$ i $\mathbf{Y}$ oraz wektorów $\mathbf{b}$, które minimalizują wartość $\mathcal{L}$.
+
+\subsection{Ograniczenia tradycyjnego podejścia dla niejawnej informacji zwrotnej}
+
+Tradycyjne metody faktoryzacji macierzy, takie jak Funk SVD, zostały zaprojektowane z myślą o przetwarzaniu jawnej informacji zwrotnej, opartej na ocenach w skali punktowej. W rzeczywistych systemach produkcyjnych stosowanie tego podejścia wiąże się jednak z istotnymi ograniczeniami. Niektórzy użytkownicy rzadko decydują się na pozostawienie opinii, co utrudnia modelowi dobranie dla nich trafnych rekomendacji. Co więcej, wiele platform nie posiada mechanizmu oceniania, co uniemożliwia działanie klasycznych algorytmów. W konsekwencji uzasadnione staje się wykorzystanie modeli opartych na niejawnej informacji zwrotnej (ang. \textit{implicit feedback}), której przykładami są liczba kliknięć, zarejestrowany czas interakcji pomiędzy użytkownikiem a obiektem czy historia zakupów.
+
+Bezpośrednie zastosowanie klasycznych algorytmów faktoryzacji macierzy do danych niejawnych prowadzi do problemów, wynikających z różnic między typami sygnałów, wskazanych w~pracy~\cite{hu2008implicit}:
+
+\begin{enumerate}
+    \item \textbf{Brak bezpośrednich sygnałów negatywnych oraz dwuznaczność braku interakcji:} W przypadku danych jawnych niska ocena jednoznacznie wskazuje na negatywną preferencję użytkownika. Natomiast niejawna informacja zwrotna dostarcza wyłącznie sygnałów pozytywnych. Długie lub częste interakcje świadczą o zainteresowaniu danym obiektem, przy założeniu, że zarejestrowana aktywność została wygenerowana przez zaangażowanego użytkownika. W praktyce założenie to nie zawsze jest spełnione, czego przykładem jest tzw. idling, czyli utrzymywanie gry uruchomionej bez faktycznego udziału użytkownika, stosowane zarówno przez właścicieli kont, jak i~przez automaty gromadzące zbywalne przedmioty~\cite{grayson2019bots}. Brak interakcji ($r_{ui}=0$) lub interakcje o niewielkiej intensywności mają charakter niejednoznaczny. Mogą one wynikać zarówno z braku zainteresowania obiektem, jak i z faktu, że użytkownik nie wiedział o jego istnieniu.
+    
+    \item \textbf{Problem ignorowania wartości zerowych:} Funkcja celu w Funk SVD optymalizowana jest wyłącznie na zbiorze zaobserwowanych ocen $\mathcal{K}$, całkowicie ignorując pozycje niezaobserwowane. Traktowanie wszystkich brakujących wartości jako obserwacji o wartości $r_{ui}=0$ prowadziłoby do zdominowania procesu uczenia przez niezaobserwowane interakcje, których liczba wielokrotnie przewyższa liczbę rzeczywistych obserwacji ze względu na wysoką rzadkość macierzy $\mathbf{R}$. Jednocześnie przypisanie im takiej samej wagi jak obserwowanym interakcjom byłoby nieuzasadnione, ponieważ brak interakcji nie oznacza jednoznacznie negatywnej preferencji użytkownika. Z kolei całkowite pominięcie tych wartości powoduje, że model nie wykorzystuje informacji zawartej w niezaobserwowanych interakcjach podczas procesu uczenia.
+    
+    \item \textbf{Różnica między preferencją a wartością obserwacji:} W modelu Funk SVD każda obserwowana wartość $r_{ui}$ wpływa na funkcję celu proporcjonalnie do swojej wartości. W przypadku danych niejawnych liczba interakcji nie odzwierciedla jednak bezpośrednio stopnia preferencji użytkownika. Model nie zawiera mechanizmu pozwalającego oddzielić długość interakcji od preferencji, co sprawia, że obserwacje o dużych wartościach dominują proces uczenia.
+\end{enumerate}
+
+Powyższe ograniczenia wymusiły opracowanie dedykowanych modeli dla danych niejawnych. Najważniejsze z nich to implicit ALS (ang. \textit{implicit Alternating Least Squares}), wprowadzający model oparty na rozdzieleniu sygnału preferencji oraz poziomu pewności przypisanego obserwacji, oraz model BPR (ang. \textit{Bayesian Personalized Ranking}), który formułuje problem rekomendacji jako zadanie optymalizacji rankingu. Szczegółowy opis obu modeli przedstawiono w kolejnych podrozdziałach.
+
+\section{Implicit Alternating Least Squares (iALS)}
+
+\subsection{Struktura preferencji i funkcja celu}
+
+W przeciwieństwie do modeli przeznaczonych dla jawnej informacji zwrotnej, algorytm \textit{Implicit Alternating Least Squares} (iALS), zaproponowany przez Hu, Korena i Volinsky'ego \cite{hu2008implicit}, rozdziela zarejestrowaną aktywność $r_{ui}$ na dwie zmienne: binarną preferencję $p_{ui}$ oraz ciągłą wagę pewności $c_{ui}$ (ang. \textit{confidence}).
+
+W oryginalnym sformułowaniu preferencję $p_{ui}$ zdefiniowano jako zmienną binarną informującą o tym, czy użytkownik $u$ wszedł w interakcję z obiektem $i$:
+\begin{equation}
+    p_{ui} = 
+    \begin{cases} 
+      1 & \text{dla } r_{ui} > 0, \\
+      0 & \text{dla } r_{ui} = 0.
+    \end{cases}
+\end{equation}
+
+W niniejszej pracy przyjęto odmienną definicję dostosowaną do specyfiki zbioru danych platformy Steam. Zmienna $p_{ui}$ przyjmuje wartość $1$, jeśli użytkownik $u$ posiada daną grę w swojej bibliotece, a $0$ w przeciwnym wypadku. Oznacza to, że gracz posiadający tytuł w bibliotece, lecz nieposiadający dla niego jeszcze zarejestrowanego czasu gry ($r_{ui} = 0$), nadal ma przypisaną preferencję $p_{ui} = 1$. Rozwiązanie to odbiega od praktyki przyjmowanej w~pracach wykorzystujących ten sam zbiór danych~\cite{bunga2021implicit,cheuque2019steam}, w~których interakcje bez zarejestrowanego czasu gry są usuwane.
+
+Ponieważ zmienna $p_{ui}$ nie uwzględnia intensywności interakcji, do modelu wprowadza się zmienną $c_{ui}$ (w dalszej części pracy określaną jako waga pewności). Zwiększa ona swoją wartość wraz ze wzrostem $r_{ui}$, sygnalizując wyższą pewność algorytmu co do prawdziwości przypisanej preferencji. W pracy Hu i in.~\cite{hu2008implicit} podstawowa metoda wyznaczania $c_{ui}$ ma postać:
+
+\begin{equation}
+    c_{ui} = 1 + \alpha r_{ui},
+\end{equation}
+gdzie $\alpha$ stanowi hiperparametr kontrolujący tempo wzrostu wagi pewności.
+
+Warto zaznaczyć, że sposób przekształcenia surowych sygnałów $r_{ui}$ w wagę $c_{ui}$ określa, w jakim stopniu model różnicuje obserwacje o różnej intensywności. Skala wpływu tego wyboru na jakość rekomendacji stanowi
+główny przedmiot analiz w dalszej części pracy.
+
+Model iALS wyznacza wektory cech ukrytych $\mathbf{x}_u \in \mathbb{R}^f$ oraz $\mathbf{y}_i \in \mathbb{R}^f$ poprzez minimalizację ważonej funkcji straty kwadratowej. W przeciwieństwie do modelu Funk SVD, który optymalizuje parametry jedynie na podstawie obserwowanych ocen, implicit ALS uwzględnia wszystkie pary użytkownik--obiekt obejmujące zarówno zaobserwowane, jak i niezaobserwowane interakcje. Jednocześnie każdej parze przypisywana jest waga pewności $c_{ui}$, która określa znaczenie danej pary podczas procesu uczenia.
+
+Formalnie funkcja celu implicit ALS przyjmuje postać:
+\begin{equation}
+    \mathcal{L}_{\text{iALS}}(\mathbf{X}, \mathbf{Y}) = \sum_{u=1}^{m} \sum_{i=1}^{n} c_{ui} \left( p_{ui} - \mathbf{x}_u^T     \mathbf{y}_i \right)^2 + \lambda \left( \sum_{u=1}^{m} \|\mathbf{x}_u\|_2^2 + \sum_{i=1}^{n} \|\mathbf{y}_i\|_2^2 \right),
+\end{equation}
+gdzie $\lambda$ jest parametrem odpowiedzialnym za regularyzację.
+
+\subsection{Optymalizacja metodą naprzemiennych najmniejszych kwadratów}
+
+Przedstawione poniżej wyprowadzenie oraz analizę złożoności obliczeniowej opracowano na podstawie pracy~\cite{hu2008implicit}.
+
+Ze względu na występowanie $m \times n$ par użytkownik--obiekt w funkcji straty modelu iALS, jej minimalizacja stanowi duże wyzwanie obliczeniowe. W szczególności uwzględnienie niezaobserwowanych interakcji w standardowym podejściu opartym na stochastycznym spadku po gradiencie wiązałoby się z koniecznością przetwarzania bardzo dużej liczby par użytkownik--obiekt. Z tego powodu stosuje się metodę naprzemiennych najmniejszych kwadratów jako standardową metodę optymalizacji~\cite{hu2008implicit}.
+
+Funkcja celu $\mathcal{L}_{\text{iALS}}(\mathbf{X}, \mathbf{Y})$ nie jest globalnie wypukła względem obu macierzy $\mathbf{X}$ oraz $\mathbf{Y}$ jednocześnie. Sytuacja ulega jednak zmianie, gdy jedną z macierzy traktuje się jako stałą. Gdy macierz $\mathbf{Y}$ traktowana jest jako stała, funkcja straty staje się kwadratowa względem każdego wektora reprezentacji użytkownika $\mathbf{x}_u$ niezależnie. Hesjan tego podproblemu wynosi $2\left(\mathbf{Y}^T\mathbf{C}^u\mathbf{Y} + \lambda\mathbf{I}\right)$ i dla $c_{ui} > 0$ oraz $\lambda > 0$ jest dodatnio określony, co przesądza o ścisłej wypukłości podproblemu. Analogicznie, przy ustalonej macierzy $\mathbf{X}$, funkcja staje się wypukła względem każdego wektora reprezentacji obiektu $\mathbf{y}_i$. Własność ta umożliwia analityczne rozwiązanie problemu jako ciągu niezależnych problemów najmniejszych kwadratów.
+
+Algorytm działa iteracyjnie, naprzemiennie wyznaczając optymalne reprezentacje użytkowników przy stałych reprezentacjach obiektów, a następnie optymalne reprezentacje obiektów przy stałych reprezentacjach użytkowników. Aby wyprowadzić wzór aktualizacji dla użytkownika $u$, rozpatruje się część funkcji straty zależną od wektora $\mathbf{x}_u$:
+\begin{equation}
+    \mathcal{L}_u = \sum_{i=1}^{n} c_{ui} \left( p_{ui} - \mathbf{x}_u^T \mathbf{y}_i \right)^2 + \lambda \|\mathbf{x}_u\|_2^2.
+\end{equation}
+Różniczkując powyższe wyrażenie względem wektora $\mathbf{x}_u$, otrzymuje się gradient:
+\begin{equation}
+    \frac{\partial \mathcal{L}_u}{\partial \mathbf{x}_u} = -2 \sum_{i=1}^{n} c_{ui} \left( p_{ui} - \mathbf{x}_u^T \mathbf{y}_i \right) \mathbf{y}_i + 2 \lambda \mathbf{x}_u.
+\end{equation}
+Po zapisaniu powyższego wyrażenia w postaci macierzowej przyjmuje ono formę:
+\begin{equation}
+    \frac{\partial \mathcal{L}_u}{\partial \mathbf{x}_u} = -2 \mathbf{Y}^T \mathbf{C}^u \left( \mathbf{p}^u - \mathbf{Y} \mathbf{x}_u \right) + 2 \lambda \mathbf{x}_u,
+\end{equation}
+gdzie $\mathbf{C}^u \in \mathbb{R}^{n \times n}$ jest macierzą diagonalną, w której element $(i,i)$ wynosi $c_{ui}$, a $\mathbf{p}^u \in \mathbb{R}^n$ jest wektorem binarnych preferencji użytkownika $u$. Przyrównując tak wyznaczony gradient do wektora zerowego:
+\begin{equation}
+    -2 \mathbf{Y}^T \mathbf{C}^u \mathbf{p}^u + 2 \mathbf{Y}^T \mathbf{C}^u \mathbf{Y} \mathbf{x}_u + 2 \lambda \mathbf{x}_u = \mathbf{0},
+\end{equation}
+oraz grupując wyrażenia względem $\mathbf{x}_u$:
+\begin{equation}
+    \left( \mathbf{Y}^T \mathbf{C}^u \mathbf{Y} + \lambda \mathbf{I}_f \right) \mathbf{x}_u = \mathbf{Y}^T \mathbf{C}^u \mathbf{p}^u,
+    \label{eq:ials_user_update}
+\end{equation}
+uzyskuje się analityczne rozwiązanie na optymalny wektor $\mathbf{x}_u$:
+\begin{equation}
+    \mathbf{x}_u = \left( \mathbf{Y}^T \mathbf{C}^u \mathbf{Y} + \lambda \mathbf{I}_f \right)^{-1} \mathbf{Y}^T \mathbf{C}^u \mathbf{p}^u,
+\end{equation}
+gdzie $\mathbf{I}_f \in \mathbb{R}^{f \times f}$ oznacza macierz jednostkową.
+
+Przeprowadzając analogiczne wyprowadzenie dla obiektu $i$, wyznacza się gradient części funkcji straty zależnej od wektora $\mathbf{y}_i$:
+\begin{equation}
+    \frac{\partial \mathcal{L}_i}{\partial \mathbf{y}_i} = -2 \mathbf{X}^T \mathbf{C}^i \left( \mathbf{p}^i - \mathbf{X} \mathbf{y}_i \right) + 2 \lambda \mathbf{y}_i,
+\end{equation}
+gdzie $\mathbf{C}^i \in \mathbb{R}^{m \times m}$ jest macierzą diagonalną z wartościami $c_{ui}$ na przekątnej, a $\mathbf{p}^i \in \mathbb{R}^m$ reprezentuje preferencje wszystkich użytkowników wobec obiektu $i$. Przyrównanie tego gradientu do wektora zerowego daje wzór aktualizacji wektora $\mathbf{y}_i$:
+\begin{equation}
+    \mathbf{y}_i = \left( \mathbf{X}^T \mathbf{C}^i \mathbf{X} + \lambda \mathbf{I}_f \right)^{-1} \mathbf{X}^T \mathbf{C}^i \mathbf{p}^i.
+\end{equation}
+
+Ze względu na to, że każdy krok naprzemiennej optymalizacji stanowi dokładne rozwiązanie wypukłego podproblemu, funkcja straty $\mathcal{L}_{\text{iALS}}$ charakteryzuje się własnością monotonicznego spadku w każdej iteracji:
+\begin{equation}
+    \mathcal{L}_{\text{iALS}}(\mathbf{X}^{(t+1)}, \mathbf{Y}^{(t+1)}) \le \mathcal{L}_{\text{iALS}}(\mathbf{X}^{(t+1)}, \mathbf{Y}^{(t)}) \le \mathcal{L}_{\text{iALS}}(\mathbf{X}^{(t)}, \mathbf{Y}^{(t)}).
+\end{equation}
+Ponieważ funkcja celu jest ograniczona z dołu, zapewnia to zbieżność ciągu jej wartości. Punkt graniczny procedury jest punktem stacjonarnym, przy czym nie ma gwarancji osiągnięcia minimum globalnego.
+
+Obliczenie składnika $\mathbf{Y}^T \mathbf{C}^u \mathbf{Y}$ podczas aktualizacji $\mathbf{x}_u$ wymagałoby czasu $\mathcal{O}(n \cdot f^2)$ dla każdego użytkownika, co prowadziłoby do nieakceptowalnego kosztu obliczeniowego dla dużych zbiorów danych. Można jednak wykorzystać fakt, że macierz pewności może zostać zapisana jako:
+\[
+\mathbf{C}^u = \mathbf{I}_n + (\mathbf{C}^u-\mathbf{I}_n),
+\]
+co pozwala przekształcić iloczyn do postaci:
+\begin{equation}
+    \mathbf{Y}^T\mathbf{C}^u\mathbf{Y}
+    =
+    \mathbf{Y}^T\mathbf{Y}
+    +
+    \mathbf{Y}^T(\mathbf{C}^u-\mathbf{I}_n)\mathbf{Y}.
+\end{equation}
+
+Pierwszy składnik $\mathbf{Y}^T\mathbf{Y}$ jest niezależny od użytkownika, dlatego może zostać obliczony jednokrotnie na początku iteracji w czasie $\mathcal{O}(n\cdot f^2)$. Z kolei drugi składnik uwzględnia jedynie te pary użytkownik--obiekt, dla których wartość pewności różni się od wartości domyślnej ($c_{ui} \neq 1$). Po zdefiniowaniu zbioru takich par jako
+\[
+\mathcal{K}_{\text{conf}}=\{(u,i):c_{ui}\neq1\}
+\]
+macierz $(\mathbf{C}^u-\mathbf{I}_n)$ pozostaje rzadka, a koszt obliczenia drugiego składnika dla wszystkich użytkowników wynosi $\mathcal{O}(|\mathcal{K}_{\text{conf}}|\cdot f^2)$.
+
+Rozwiązanie układu równań~\eqref{eq:ials_user_update} wymaga wyznaczenia wektora $\mathbf{x}_u$ poprzez rozwiązanie problemu liniowego o wymiarze $f \times f$. Koszt pojedynczej operacji wynosi $\mathcal{O}(f^3)$, a wykonanie jej dla wszystkich $m$ użytkowników prowadzi do składnika $\mathcal{O}(m\cdot f^3)$.
+
+W konsekwencji złożoność aktualizacji całej macierzy użytkowników $\mathbf{X}$ wynosi:
+\begin{equation}
+    \mathcal{O}\left(
+    m\cdot f^3
+    +
+    |\mathcal{K}_{\text{conf}}|\cdot f^2
+    +
+    n\cdot f^2
+    \right).
+\end{equation}
+
+Analogiczna procedura jest stosowana podczas aktualizacji macierzy obiektów $\mathbf{Y}$, której koszt wynosi $\mathcal{O}(n\cdot f^3 + |\mathcal{K}_{\text{conf}}|\cdot f^2 + m\cdot f^2)$. W pełnej iteracji algorytmu iALS oba kroki wykonywane są naprzemiennie.
+
+\section{Bayesian Personalized Ranking (BPR)}
+
+Przedstawione w~tym podrozdziale sformułowanie modelu, wyprowadzenie kryterium optymalizacyjnego oraz algorytm uczenia opracowano na podstawie pracy~\cite{rendle2009bpr}.
+
+\subsection{Podejście oparte na porównywaniu par (pairwise ranking)}
+
+Alternatywą dla minimalizacji błędu odtwarzania macierzy interakcji stosowanej w modelu iALS są metody oparte na maksymalizacji prawdopodobieństwa a posteriori. Szczególnym przypadkiem takich metod, dobrze dopasowanym do problemu rekomendacji z binarną i niejawną informacją zwrotną, jest algorytm Bayesian Personalized Ranking (BPR) zaproponowany przez Rendlego i in.~\cite{rendle2009bpr}. W przeciwieństwie do modeli przewidujących wartość dopasowania dla pojedynczej pary użytkownik--obiekt, BPR formułuje zadanie rekomendacji jako problem porządkowania parowego (ang. \textit{pairwise ranking}), w którym model uczy się prawdopodobieństwa, że użytkownik preferuje zaobserwowany obiekt $i$ względem niezaobserwowanego obiektu $j$. Tym samym brak interakcji nie jest bezpośrednio interpretowany jako negatywny sygnał, lecz wykorzystywany do wyznaczania relacji preferencji pomiędzy parami obiektów.
+
+Dla każdego użytkownika $u \in \mathcal{U}$ tworzy się trójki danych postaci
+$(u, i, j)$, gdzie $i \in \mathcal{I}_u^+$ stanowi obiekt, z którym użytkownik
+wszedł w~interakcję, natomiast $j \in \mathcal{I} \setminus \mathcal{I}_u^+$
+jest obiektem bez zaobserwowanej interakcji. Górny indeks w oznaczeniu
+$\mathcal{I}_u^+$ podkreśla, że zbiór ten obejmuje wyłącznie sygnały pozytywne.
+Relację między obiektami zapisuje się symbolicznie jako $i >_u j$, co oznacza,
+że użytkownik $u$ preferuje obiekt $i$ nad obiektem $j$. Zbiór wszystkich tak
+skonstruowanych trójek w~danych treningowych definiuje się jako $D_S$:
+\begin{equation}
+    D_S = \{ (u, i, j) \mid u \in \mathcal{U} \land i \in \mathcal{I}_u^+
+    \land j \in \mathcal{I} \setminus \mathcal{I}_u^+ \}.
+\end{equation}
+
+Dla par obiektów, z którymi użytkownik nie wszedł w interakcję (lub wszedł w interakcję z obydwoma), system nie posiada informacji o ich względnej preferencji.
+
+Symbolem $>_u$ oznacza się ukryte uporządkowanie zbioru wszystkich obiektów $\mathcal{I}$ dla użytkownika $u$. Relacja ta reprezentuje rzeczywisty porządek preferencji użytkownika, który jednak nie jest bezpośrednio obserwowany w danych. Aby relacja ta stanowiła poprawny schemat rankingowy, musi spełniać własności relacji porządku całkowitego:
+\begin{itemize}
+    \item \textbf{Spójność:} $\forall_{i \neq j \in \mathcal{I}} \quad i >_u j \lor j >_u i$,
+    \item \textbf{Antysymetria:}\footnote{Zgodnie z~nazewnictwem przyjętym
+    w~pracy~\cite{rendle2009bpr}. W~terminologii teorii relacji własność ta
+    określana jest ściślej jako asymetria.} $\forall_{i, j \in \mathcal{I}}
+    \quad i >_u j \implies \neg(j >_u i)$,
+    \item \textbf{Przechodniość:} $\forall_{i, j, k \in \mathcal{I}} \quad
+    (i >_u j \land j >_u k) \implies i >_u k$.
+\end{itemize}
+Spójność zapewnia porównywalność każdej pary obiektów, antysymetria wyklucza sprzeczne wskazania, natomiast przechodniość gwarantuje, że relacja wyznacza jednoznaczny ranking, a nie cykl preferencji.
+
+Do modelowania tak zdefiniowanej relacji porządku wykorzystuje się faktoryzację macierzy. Wynik dopasowania obiektu do użytkownika wyznaczany jest jako iloczyn skalarny odpowiadających im wektorów cech ukrytych $\mathbf{x}_u, \mathbf{y}_i \in \mathbb{R}^f$. Dla odróżnienia od predykcji ocen w modelach dla jawnej informacji zwrotnej wynik ten oznacza się symbolem $\hat{s}_{ui}$. Różnica wyników predykcji dla pary obiektów $i$ oraz $j$ przybiera postać:
+\begin{equation}
+    \hat{s}_{uij} = \hat{s}_{ui} - \hat{s}_{uj} = \mathbf{x}_u^T \mathbf{y}_i - \mathbf{x}_u^T \mathbf{y}_j = \mathbf{x}_u^T (\mathbf{y}_i - \mathbf{y}_j).
+\end{equation}
+
+Wszystkie uczone parametry modelu zawarte w macierzach cech ukrytych użytkowników $\mathbf{X}$ oraz obiektów $\mathbf{Y}$ oznacza się zbiorczo jako wektor parametrów:
+
+\begin{equation}
+    \Theta =
+    \operatorname{vec}(\mathbf{X},\mathbf{Y}),
+\end{equation}
+
+gdzie operator $\operatorname{vec}(\cdot)$ oznacza przekształcenie elementów macierzy do jednego wektora parametrów.
+
+Aby przekształcić ciągłą różnicę predykcji $\hat{s}_{uij} \in (-\infty, +\infty)$ na prawdopodobieństwo tego, że użytkownik $u$ preferuje obiekt $i$ nad $j$, stosuje się funkcję sigmoidalną $\sigma(z) = \frac{1}{1 + e^{-z}}$:
+\begin{equation}
+    p(i >_u j \mid \Theta) = \sigma(\hat{s}_{uij}) = \frac{1}{1 + e^{-\hat{s}_{uij}}}.
+\end{equation}
+
+Warto zauważyć, że zastosowanie funkcji sigmoidalnej $\sigma(z)$ nie tylko sprowadza wartość różnicy predykcji do przedziału $(0, 1)$, ale również gwarantuje zachowanie właściwości antysymetrii relacji preferencji. Ponieważ różnica predykcji jest antysymetryczna ($\hat{s}_{uji} = -\hat{s}_{uij}$), a dla funkcji sigmoidalnej zachodzi tożsamość $1 - \sigma(z) = \sigma(-z)$, model spełnia regułę dopełnienia zdarzeń przeciwnych:
+\begin{equation}
+    p(j >_u i \mid \Theta) = \sigma(\hat{s}_{uji}) = \sigma(-\hat{s}_{uij}) = 1 - \sigma(\hat{s}_{uij}) = 1 - p(i >_u j \mid \Theta).
+\end{equation}
+
+\subsection{Funkcja celu modelu BPR}
+
+Celem uczenia modelu Bayesian Personalized Ranking jest wyznaczenie zestawu parametrów $\Theta$, który maksymalizuje prawdopodobieństwo a posteriori zgodne z zaobserwowanymi w danych preferencjami parowymi. Problem ten formułuje się na podstawie twierdzenia Bayesa jako poszukiwanie maksimum:
+
+\begin{equation}
+    p(\Theta \mid D_S) = \frac{p(D_S \mid \Theta) \cdot p(\Theta)}{p(D_S)},
+\end{equation}
+
+gdzie $p(D_S \mid \Theta)$ stanowi funkcję wiarogodności zbioru obserwacji przy danych parametrach, a $p(\Theta)$ jest rozkładem a priori parametrów. Ponieważ mianownik nie zależy od optymalizowanych parametrów, problem maksymalizacji prawdopodobieństwa a posteriori sprowadza się do maksymalizacji licznika:
+
+\begin{equation}
+    p(\Theta \mid D_S) \propto p(D_S \mid \Theta) \cdot p(\Theta).
+\end{equation}
+
+Ze względów stabilności obliczeniowej dokonuje się transformacji powyższego kryterium za pomocą logarytmu naturalnego. Ścisła monotoniczność logarytmu sprawia, że przekształcenie to nie zmienia położenia ekstremów funkcji, a pozwala zamienić iloczyny prawdopodobieństw na sumy i zdefiniować funkcję celu:
+
+\begin{equation}
+    \mathcal{L}_{\text{BPR}}(\Theta) = \ln p(\Theta \mid D_S) = \ln p(D_S \mid \Theta) + \ln p(\Theta) + C,
+\end{equation}
+gdzie $C$ jest nieistotną z punktu widzenia optymalizacji stałą. W odróżnieniu od funkcji straty $\mathcal{L}_{\text{iALS}}$, kryterium $\mathcal{L}_{\text{BPR}}$ podlega maksymalizacji.
+
+\subsubsection{Sformułowanie funkcji wiarogodności}
+
+Przy założeniu, że użytkownicy działają niezależnie od siebie oraz że poszczególne relacje preferencji w~obrębie jednego użytkownika traktowane są jako wzajemnie niezależne, łączną wiarogodność ukrytej struktury preferencji można zapisać jako iloczyn po parach nieuporządkowanych:
+
+\begin{equation}
+p(> \mid \Theta)
+:= \prod_{u \in \mathcal{U}} p(>_u \mid \Theta)
+= \prod_{u \in \mathcal{U}} \prod_{\substack{\{i,j\} \subseteq \mathcal{I} \\ i \neq j}}
+p(i >_u j \mid \Theta)^{\mathbf{1}(i >_u j)}
+\cdot
+\bigl(1 - p(i >_u j \mid \Theta)\bigr)^{\mathbf{1}(\neg(i >_u j))}.
+\end{equation}
+
+Zapis ten upraszcza się dzięki własnościom relacji $>_u$. Jest ona spójna i~antysymetryczna, wobec czego dla każdej pary różnych obiektów zachodzą zależności:
+\begin{align}
+    \neg(i >_u j) &\iff j >_u i, \\
+    1 - p(i >_u j \mid \Theta) &= p(j >_u i \mid \Theta).
+\end{align}
+
+Dla ustalonej pary $\{i,j\}$ dokładnie jeden z~dwóch wykładników jest równy jedności, a~drugi zeru, przy czym oba czynniki opisują to samo zdarzenie. W~konsekwencji każda para wnosi dokładnie jeden czynnik:
+
+\begin{equation}
+p(> \mid \Theta) = \prod_{u \in \mathcal{U}} \prod_{\substack{\{i,j\} \subseteq \mathcal{I},\ i \neq j \\ i >_u j}} p(i >_u j \mid \Theta).
+\end{equation}
+
+Indeksowanie po parach nieuporządkowanych jest tu istotne: iloczyn po parach uporządkowanych uwzględniałby każdą relację dwukrotnie, co w~logarytmie wiarogodności dawałoby dwukrotność sumy i~zaburzało proporcję między członem danych a~członem regularyzacyjnym. Relacja $>_u$ nie jest jednak obserwowana bezpośrednio. Ograniczenie iloczynu do zbioru $D_S$, zawierającego wyłącznie trójki o orientacji zgodnej z sygnałem pozytywnym, zapewnia takie jednokrotne zliczanie. Ograniczając iloczyn do tak przyjętych relacji, otrzymuje się:
+
+\begin{equation}
+p(D_S \mid \Theta) = \prod_{(u,i,j)\in D_S} p(i >_u j \mid \Theta) = \prod_{(u,i,j)\in D_S} \sigma(\hat{s}_{uij}),
+\end{equation}
+
+a~po zlogarytmowaniu:
+
+\begin{equation}
+\ln p(D_S \mid \Theta) = \sum_{(u,i,j)\in D_S} \ln \sigma(\hat{s}_{uij}),
+\end{equation}
+
+co odpowiada członowi dopasowania w~funkcji celu maksymalizowanej przez BPR. Należy zaznaczyć, że przyjęte założenia mają charakter upraszczający. Założenie o~niezależności relacji parowych pozostaje w sprzeczności z~postulowaną wcześniej przechodniością $>_u$. Ograniczenie iloczynu do zbioru $D_S$ osłabia ten problem, ponieważ wszystkie założone relacje prowadzą od obiektów z~$\mathcal{I}_u^+$ do obiektów spoza tego zbioru i~nie tworzą łańcuchów, w~których przechodniość wymuszałaby dodatkowe zależności. Jednak ze względu na parametryzację opartą na wynikach $\hat{s}_{ui}$ prawdopodobieństwa poszczególnych par pozostają ze sobą powiązane. Faktoryzacja wiarogodności po parach stanowi zatem uproszczenie obliczeniowe, a~nie konsekwencję przyjętych aksjomatów.
+
+\subsubsection{Sformułowanie rozkładu a priori i regularyzacji}
+
+W celu zdefiniowania rozkładu a priori parametrów modelu zakłada się, że wektor wszystkich parametrów $\Theta$ posiada wielowymiarowy rozkład normalny:
+
+\begin{equation}
+    \Theta \sim \mathcal{N}(\mathbf{0},\sigma_\Theta^2\mathbf{I}).
+\end{equation}
+
+Przy założeniu niezależności poszczególnych zmiennych losowych tworzących wektory cech ukrytych $\mathbf{x}_u$ oraz $\mathbf{y}_i$, gęstość wyraża się jako iloczyn wielowymiarowych rozkładów Gaussa:
+
+\begin{equation}
+    p(\Theta) = \prod_{u \in \mathcal{U}} \left( \left(2\pi \sigma_\Theta^2\right)^{-f/2} \exp\left( -\frac{\|\mathbf{x}_u\|_2^2}{2\sigma_\Theta^2} \right) \right) \cdot \prod_{i \in \mathcal{I}} \left( \left(2\pi \sigma_\Theta^2\right)^{-f/2} \exp\left( -\frac{\|\mathbf{y}_i\|_2^2}{2\sigma_\Theta^2} \right) \right).
+\end{equation}
+
+Po nałożeniu logarytmu naturalnego i uporządkowaniu składników otrzymujemy:
+
+\begin{equation}
+    \ln p(\Theta) = \ln C_\Theta - \frac{1}{2\sigma_\Theta^2} \left( \sum_{u \in \mathcal{U}} \|\mathbf{x}_u\|_2^2 + \sum_{i \in \mathcal{I}} \|\mathbf{y}_i\|_2^2 \right),
+\end{equation}
+gdzie $C_\Theta$ jest stałą. Przyjmując oznaczenie $\lambda_\Theta = \frac{1}{2\sigma_\Theta^2}$ jako hiperparametr modelu uzyskuje się drugi człon funkcji celu, odpowiedzialny za regularyzację $L_2$:
+
+\begin{equation}
+    \ln p(\Theta) = -\lambda_\Theta \left( \sum_{u \in \mathcal{U}} \|\mathbf{x}_u\|_2^2 + \sum_{i \in \mathcal{I}} \|\mathbf{y}_i\|_2^2 \right) + \mathrm{const}.
+\end{equation}
+
+\subsubsection{Końcowa postać kryterium}
+
+Połączenie logarytmu funkcji wiarogodności oraz logarytmu rozkładu a priori prowadzi do końcowej postaci kryterium optymalizacyjnego, które podlega maksymalizacji:
+
+\begin{equation}
+    \mathcal{L}_{\text{BPR}}(\Theta) = \sum_{(u, i, j) \in D_S} \ln \sigma(\hat{s}_{uij}) - \lambda_\Theta \left( \sum_{u \in \mathcal{U}} \|\mathbf{x}_u\|_2^2 + \sum_{i \in \mathcal{I}} \|\mathbf{y}_i\|_2^2 \right).
+\end{equation}
+
+Uwzględniając postać predykcji z faktoryzacji macierzy ($\hat{s}_{uij} = \mathbf{x}_u^T \mathbf{y}_i - \mathbf{x}_u^T \mathbf{y}_j$), kryterium przybiera pełną postać:
+
+\begin{equation}
+    \mathcal{L}_{\text{BPR}}(\Theta) = \sum_{(u, i, j) \in D_S} \ln \sigma\left( \mathbf{x}_u^T \mathbf{y}_i - \mathbf{x}_u^T \mathbf{y}_j \right) - \lambda_\Theta \left( \sum_{u \in \mathcal{U}} \|\mathbf{x}_u\|_2^2 + \sum_{i \in \mathcal{I}} \|\mathbf{y}_i\|_2^2 \right).
+\end{equation}
+
+\subsection{Optymalizacja z wykorzystaniem LearnBPR}
+
+Wyprowadzone kryterium $\mathcal{L}_{\text{BPR}}(\mathbf{X}, \mathbf{Y})$ nie posiada rozwiązania analitycznego, dlatego jego maksimum wyznacza się metodą iteracyjną, opartą na gradiencie funkcji celu. Naturalnym punktem wyjścia wydaje się algorytm wznoszenia gradientu, w którym w każdej iteracji $t$ aktualizuje się wektor parametrów $\Theta$ zgodnie z regułą:
+\begin{equation}
+    \Theta_{t+1} = \Theta_t + \eta \nabla_\Theta \mathcal{L}_{\text{BPR}}(\Theta_t),
+\end{equation}
+gdzie $\eta$ oznacza współczynnik uczenia.
+
+Zastosowanie tej reguły w~postaci pełnej wymaga jednak wyznaczenia gradientu
+sumy po wszystkich elementach zbioru treningowego w~każdej iteracji algorytmu,
+co dla realistycznych zbiorów danych jest w~praktyce zbyt czasochłonne. Zbiór
+$D_S$ zdefiniowany jest jako iloczyn kartezjański par pozytywnych i~negatywnych
+dla każdego użytkownika, a~więc jego liczność wynosi:
+\begin{equation}
+    |D_S| = \sum_{u \in \mathcal{U}} |\mathcal{I}_u^+| \cdot
+    \left( |\mathcal{I}| - |\mathcal{I}_u^+| \right),
+\end{equation}
+co oznacza, że dla typowego użytkownika liczba trójek treningowych jest
+w~przybliżeniu liniowa względem rozmiaru całego katalogu obiektów $\mathcal{I}$.
+
+Z tego powodu w pracy Rendlego i in. \cite{rendle2009bpr} zaproponowano algorytm LearnBPR, oparty na stochastycznym wznoszeniu gradientu (ang. \textit{stochastic gradient ascent}) z zastosowaniem próbkowania bootstrapowego. Zamiast obliczać pełny gradient dla całego zbioru $D_{S}$, w każdej iteracji algorytmu losowana jest pojedyncza trójka danych $(u,i,j)$. Procedura ta polega na wyborze z równym prawdopodobieństwem użytkownika $u$, powiązanego z nim obiektu pozytywnego $i \in \mathcal{I}_u^+$ oraz obiektu negatywnego $j \in \mathcal{I} \setminus \mathcal{I}_u^+$. Podejście to pozwala na znaczne obniżenie kosztu obliczeniowego pojedynczej iteracji. Warto zaznaczyć, że w oryginalnym sformułowaniu algorytmu LearnBPR losowanie trójek odbywa się ze zwracaniem i z rozkładu jednostajnego, a nie poprzez sekwencyjne przejście po użytkownikach lub obiektach, jak ma to miejsce w klasycznym stochastycznym wznoszeniu gradientu.
+
+\subsubsection{Wyprowadzenie reguł aktualizacji}
+
+Dla pojedynczego kroku stochastycznego optymalizacji, odpowiadającego wylosowanej trójce $(u,i,j)$, rozważane jest lokalne kryterium ograniczone do występujących w~niej parametrów:
+\begin{equation}
+    l(u,i,j) = \ln \sigma(\hat{s}_{uij}) - \lambda_\Theta \left( \|\mathbf{x}_u\|_2^2 + \|\mathbf{y}_i\|_2^2 + \|\mathbf{y}_j\|_2^2 \right).
+\end{equation}
+
+Ponieważ $\sigma(z) = \frac{1}{1+e^{-z}}$, a jej pochodna spełnia tożsamość $\sigma'(z) = \sigma(z)(1-\sigma(z))$, pochodna logarytmu sigmoidy względem argumentu $z$ wynosi:
+\begin{equation}
+    \frac{d}{dz} \ln \sigma(z) = \frac{\sigma'(z)}{\sigma(z)} = 1 - \sigma(z) = \sigma(-z).
+\end{equation}
+Po podstawieniu $z = \hat{s}_{uij}$, otrzymuje się:
+\begin{equation}
+    \frac{\partial}{\partial \hat{s}_{uij}} \ln \sigma(\hat{s}_{uij}) = \sigma(-\hat{s}_{uij}).
+    \label{eq:dsigma}
+\end{equation}
+
+Aby wyznaczyć gradienty względem poszczególnych wektorów cech ukrytych, korzysta się z reguły łańcuchowej oraz z jawnej postaci $\hat{s}_{uij} = \mathbf{x}_u^T\mathbf{y}_i - \mathbf{x}_u^T\mathbf{y}_j$, która jest funkcją liniową względem każdego z wektorów $\mathbf{x}_u$, $\mathbf{y}_i$, $\mathbf{y}_j$ z osobna:
+\begin{equation}
+    \nabla_{\mathbf{x}_u} \hat{s}_{uij} = \mathbf{y}_i - \mathbf{y}_j, \qquad
+    \nabla_{\mathbf{y}_i} \hat{s}_{uij} = \mathbf{x}_u, \qquad
+    \nabla_{\mathbf{y}_j} \hat{s}_{uij} = -\mathbf{x}_u.
+    \label{eq:sgrad}
+\end{equation}
+
+Łącząc \eqref{eq:dsigma} i \eqref{eq:sgrad} z pochodną członu regularyzacyjnego ($\nabla_{\mathbf{v}} \|\mathbf{v}\|_2^2 = 2\mathbf{v}$), otrzymuje się pełne gradienty lokalnego kryterium $l(u,i,j)$ względem wszystkich trzech występujących w nim parametrów:
+\begin{align}
+    \nabla_{\mathbf{x}_u} l(u,i,j) &= \sigma(-\hat{s}_{uij})(\mathbf{y}_i - \mathbf{y}_j) - 2\lambda_\Theta \mathbf{x}_u, \label{eq:gradxu}\\
+    \nabla_{\mathbf{y}_i} l(u,i,j) &= \sigma(-\hat{s}_{uij})\,\mathbf{x}_u - 2\lambda_\Theta \mathbf{y}_i, \label{eq:gradyi}\\
+    \nabla_{\mathbf{y}_j} l(u,i,j) &= -\sigma(-\hat{s}_{uij})\,\mathbf{x}_u - 2\lambda_\Theta \mathbf{y}_j. \label{eq:gradyj}
+\end{align}
+
+\subsubsection{Reguły aktualizacji algorytmu LearnBPR}
+
+Na podstawie wzorów \eqref{eq:gradxu}--\eqref{eq:gradyj} oraz reguły aktualizacji metodą wznoszenia gradientowego dla pojedynczej próbki, algorytm LearnBPR w każdej iteracji losuje ze zwracaniem trójkę $(u,i,j) \sim D_S$ i wykonuje aktualizację trzech wektorów cech ukrytych:
+\begin{align}
+    \mathbf{x}_u &\leftarrow \mathbf{x}_u + \eta \Big( \sigma(-\hat{s}_{uij})(\mathbf{y}_i - \mathbf{y}_j) - 2\lambda_\Theta \mathbf{x}_u \Big), \\
+    \mathbf{y}_i &\leftarrow \mathbf{y}_i + \eta \Big( \sigma(-\hat{s}_{uij})\,\mathbf{x}_u - 2\lambda_\Theta \mathbf{y}_i \Big), \\
+    \mathbf{y}_j &\leftarrow \mathbf{y}_j + \eta \Big( -\sigma(-\hat{s}_{uij})\,\mathbf{x}_u - 2\lambda_\Theta \mathbf{y}_j \Big).
+\end{align}
+
+Procedurę tę powtarza się iteracyjnie aż do spełnienia kryterium zatrzymania, na przykład osiągnięcia ustalonej liczby iteracji lub stabilizacji wartości funkcji celu na zbiorze walidacyjnym. W odróżnieniu od pełnego gradientu wznoszącego, każda iteracja LearnBPR wymaga nakładu obliczeniowego rzędu $\mathcal{O}(f)$, niezależnego od liczności zbioru $D_S$. Czyni to tę metodę praktyczną w zastosowaniach dla dużych zbiorów danych.

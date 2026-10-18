@@ -1,0 +1,18 @@
+\begin{table}[htbp]
+\centering
+\caption{Najważniejsze różnice średniego per-user NDCG@10 między wariantami ALS}
+\label{tab:testy-statystyczne}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lrr}
+\toprule
+Porównanie & Średnia różnica NDCG@10 & Istotność po korekcie Holma \\
+\midrule
+log. z przesunięciem $\beta$ - logarytmiczna & 0.01608 & $p < 0.001$ \\
+log. z przesunięciem $\beta$ - log. z saturacją & 0.01627 & $p < 0.001$ \\
+log. z przesunięciem $\beta$ - liniowa & 0.02176 & $p < 0.001$ \\
+log. z saturacją - logarytmiczna & -0.00020 & $p < 0.001$ \\
+\bottomrule
+\end{tabular}%
+}
+\caption*{\footnotesize Źródło: opracowanie własne. Ostatnia różnica jest statystycznie istotna, ale praktycznie pomijalna.}
+\end{table}

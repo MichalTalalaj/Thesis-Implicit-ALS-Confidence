@@ -1,0 +1,11 @@
+metric,value
+interactions,5132610.0
+users,62944.0
+items,9198.0
+matrix_density,0.008865240509502685
+train_val_interactions,4591379.0
+test_interactions,541231.0
+train_val_users,62948.0
+test_users,62944.0
+train_val_items,9198.0
+test_items,8328.0

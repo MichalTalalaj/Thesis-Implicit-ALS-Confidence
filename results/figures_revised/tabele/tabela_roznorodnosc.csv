@@ -1,0 +1,7 @@
+﻿Model,Liczba czynników,ILD@10 (współwystępowanie),diversity@10 (przestrzeń latentna),Coverage@10
+BPR,96,0.7363,0.5499,0.3039
+stała (γ),48,0.6825,0.7616,0.1374
+liniowa,80,0.7528,0.7854,0.1178
+logarytmiczna,24,0.6469,0.5963,0.0762
+logarytmiczna z saturacją,24,0.6470,0.5948,0.0761
+logarytmiczna z przesunięciem β,48,0.6841,0.7314,0.1313

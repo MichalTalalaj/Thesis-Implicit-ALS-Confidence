@@ -1,0 +1,11 @@
+﻿Porównanie,n_users,Mediana różnicy NDCG@10,p-value,p-value Holm,Istotne α=0.05
+stała (γ) vs logarytmiczna z saturacją,62944,0.0,1.0666981524668906e-246,1.0666981524668907e-245,True
+stała (γ) vs logarytmiczna,62944,0.0,6.92062222187541e-240,6.228559999687869e-239,True
+stała (γ) vs logarytmiczna z przesunięciem β,62944,0.0,7.220941939892334e-163,5.776753551913867e-162,True
+logarytmiczna z saturacją vs logarytmiczna z przesunięciem β,62944,0.0,2.243050561366017e-140,1.5701353929562118e-139,True
+logarytmiczna vs logarytmiczna z przesunięciem β,62944,0.0,2.3306148293324132e-135,1.3983688975994479e-134,True
+stała (γ) vs liniowa,62944,0.0,8.162969748684038e-38,4.081484874342019e-37,True
+logarytmiczna vs logarytmiczna z saturacją,62944,0.0,1.4015392545128802e-16,5.606157018051521e-16,True
+liniowa vs logarytmiczna z przesunięciem β,62944,0.0,1.5561833943799718e-13,4.668550183139915e-13,True
+liniowa vs logarytmiczna z saturacją,62944,0.0,0.0006771269342673927,0.0013542538685347855,True
+liniowa vs logarytmiczna,62944,0.0,0.0014774622235375263,0.0014774622235375263,True

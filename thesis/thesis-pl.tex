@@ -1,0 +1,183 @@
+\documentclass[a4paper,11pt,twoside]{report}
+% KOMPILOWAĆ ZA POMOCĄ pdfLaTeXa
+
+% -------------- Kodowanie znaków, język polski -------------
+\usepackage[utf8]{inputenc}
+\usepackage[MeX]{polski}
+\usepackage[T1]{fontenc}
+\usepackage[english,polish]{babel}
+
+% -------------- Pakiety matematyczne i techniczne -------------
+\usepackage{amsmath,amsfonts,amssymb,amsthm,latexsym}
+\usepackage[final]{pdfpages}
+\usepackage{commath}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{enumitem}
+\usepackage{csquotes}
+\usepackage[hidelinks]{hyperref}
+\usepackage{bbm}
+
+% -------------- Bibliografia -------------
+\usepackage[backend=biber,style=numeric,sorting=nyt,maxbibnames=99]{biblatex}
+\addbibresource{bib/bibliografia.bib}
+
+% -------------- Marginesy, akapity, interlinia ------------------
+\usepackage[inner=30mm,outer=20mm,bindingoffset=10mm,top=25mm,bottom=25mm]{geometry}
+\linespread{1.15}
+\allowdisplaybreaks
+\setlength{\headheight}{14pt}
+\usepackage{indentfirst}
+\setlength{\parindent}{5mm}
+
+% -------------- Ścieżki do rysunków ------------------
+\graphicspath{{figures/}}
+
+% -------------- Żywa pagina ------------------------
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[LE,RO]{\thepage}
+\fancyhead[LO]{\sc \nouppercase{\rightmark}}
+\fancyhead[RE]{\sc \leftmark}
+\renewcommand{\chaptermark}[1]{\markboth{\thechapter.\ #1}{}}
+\renewcommand{\headrulewidth}{0pt}
+
+\fancypagestyle{plain}{%
+  \fancyhf{}%
+  \fancyfoot[LE,RO]{\thepage}%
+  \renewcommand{\headrulewidth}{0pt}%
+  \renewcommand{\footrulewidth}{0.0pt}%
+}
+
+% -------------- Nagłówki rozdziałów ---------------------
+\usepackage{titlesec}
+
+\titleformat{\chapter}
+  {\sffamily\bfseries\fontsize{14}{16}\selectfont}
+  {\thechapter.}
+  {1ex}
+  {}
+
+\titleformat{\section}
+  {\sffamily\bfseries\fontsize{13}{15}\selectfont}
+  {\thesection.}
+  {1ex}
+  {}
+
+\titleformat{\subsection}
+  {\sffamily\bfseries\fontsize{12}{14}\selectfont}
+  {\thesubsection.}
+  {1ex}
+  {}
+
+% -------------- Spis treści ---------------------------
+\makeatletter
+\def\cleardoublepage{\clearpage\if@twoside
+\ifodd\c@page\else\hbox{}\thispagestyle{empty}\newpage
+\if@twocolumn\hbox{}\newpage\fi\fi\fi}
+\makeatother
+
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd{\l@chapter}
+  {\hfil}
+  {\leaders\hbox{\normalfont$\m@th\mkern \@dotsep mu\hbox{.}\mkern \@dotsep mu$}\hfill}
+  {}{}
+\makeatother
+
+\usepackage{titletoc}
+\makeatletter
+\titlecontents{chapter}[0pt]{}{\bfseries \thecontentslabel.\quad}{\bfseries}{\bfseries\leaders\hbox{\normalfont$\m@th\mkern \@dotsep mu\hbox{.}\mkern \@dotsep mu$}\hfill\contentspage}
+\titlecontents{section}[1em]{}{\thecontentslabel.\quad}{}{\leaders\hbox{\normalfont$\m@th\mkern \@dotsep mu\hbox{.}\mkern \@dotsep mu$}\hfill\contentspage}
+\titlecontents{subsection}[2em]{}{\thecontentslabel.\quad}{}{\leaders\hbox{\normalfont$\m@th\mkern \@dotsep mu\hbox{.}\mkern \@dotsep mu$}\hfill\contentspage}
+\makeatother
+
+% -------------- Spisy tabel i rysunków ----------------------
+\renewcommand*{\thetable}{\arabic{chapter}.\arabic{table}}
+\renewcommand*{\thefigure}{\arabic{chapter}.\arabic{figure}}
+
+% -------------- Definicje, twierdzenia ----------------------
+\makeatletter
+\newtheoremstyle{definition}{3ex}{3ex}{\upshape}{}{\bfseries}{.}{.5em}{\thmname{#1}\thmnumber{ #2}\thmnote{ (#3)}}
+\makeatother
+\theoremstyle{definition}
+\newtheorem{theorem}{Twierdzenie}[chapter]
+\newtheorem{lemma}[theorem]{Lemat}
+\newtheorem{example}[theorem]{Przykład}
+\newtheorem{proposition}[theorem]{Stwierdzenie}
+\newtheorem{corollary}[theorem]{Wniosek}
+\newtheorem{definition}[theorem]{Definicja}
+\newtheorem{remark}[theorem]{Uwaga}
+
+% -------------- Dane pracy ------------------
+\newcommand{\tytul}{Wpływ postaci funkcji pewności na jakość rekomendacji gier w modelu implicit ALS}
+\renewcommand{\title}{The impact of confidence functions on game recommendation quality in implicit ALS}
+\newcommand{\type}{licencjacka}
+\newcommand{\supervisor}{dr inż. Robert Małysz}
+
+% -------------- Makra pomocnicze ------------------
+\newcommand{\playtime}{\texttt{playtime\_forever}}
+\newcommand{\confidence}{\emph{confidence}}
+\newcommand{\ndcg}{NDCG@10}
+\newcommand{\sourcecaption}[1]{\caption*{\footnotesize Źródło: #1}}
+
+\begin{document}
+\sloppy
+\raggedbottom
+
+\includepdf[pages=-]{titlepage-pl}
+
+\null\thispagestyle{empty}\newpage
+
+% ---------------------------- ABSTRAKTY -----------------------------
+\input{tex/00_streszczenie}
+\null\thispagestyle{empty}\newpage
+
+\input{tex/00_abstract}
+\null\thispagestyle{empty}\newpage
+
+% ------------------- Spis treści ---------------------
+\pagestyle{empty}
+\tableofcontents
+\thispagestyle{empty}
+
+\cleardoublepage
+
+% -------------- Zasadnicza część pracy --------------------
+\pagestyle{fancy}
+
+\input{tex/01_wstep}
+\input{tex/02_podstawy_teoretyczne}
+\input{tex/03_metryki_ewaluacyjne}
+%\input{tex/04_przeglad_literatury}
+\input{tex/05_dane_i_eda}
+\input{tex/06_metodologia_eksperymentalna}
+\input{tex/07_wyniki_eksperymentow}
+\input{tex/08_podsumowanie}
+
+% ------------------- Bibliografia ---------------------
+\printbibliography[heading=bibintoc,title={Bibliografia}]
+
+% ------------------- Wykazy końcowe ---------------------
+\input{tex/90_wykaz_symboli}
+
+\addcontentsline{toc}{chapter}{Spis rysunków}
+\listoffigures
+\thispagestyle{plain}
+
+\addcontentsline{toc}{chapter}{Spis tabel}
+\listoftables
+\thispagestyle{plain}
+
+%\chapter*{Załączniki}
+%\addcontentsline{toc}{chapter}{Załączniki}
+%\appendix
+%\input{tex/99_dodatki}
+
+\end{document}

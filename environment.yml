@@ -1,0 +1,20 @@
+# Observed direct dependencies, not a tested solver lock.
+name: steam-thesis
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.11.15
+  - pip=26.0.1
+  - numpy=1.26.4
+  - pandas=3.0.2
+  - scipy=1.17.1
+  - scikit-learn=1.8.0
+  - threadpoolctl=3.5.0
+  - jupyterlab=4.5.6
+  - conda-forge::ipykernel=7.2.0
+  - pip:
+      - implicit==0.7.2
+      - optuna==4.8.0
+      - matplotlib==3.10.9
+      - tqdm==4.67.3

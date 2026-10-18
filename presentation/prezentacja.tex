@@ -1,0 +1,613 @@
+% !TeX program = pdflatex
+% Prezentacja na obronę pracy licencjackiej
+% Kompilacja: pdflatex prezentacja.tex (DWUKROTNIE — drugi przebieg dla kropek nawigacji)
+
+\documentclass[aspectratio=169,11pt]{beamer}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[polish]{babel}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+
+% ==================== WYGLĄD ====================
+
+\usetheme{Darmstadt}
+\usecolortheme{default}
+
+\definecolor{akcent}{HTML}{1F3A5F}
+\definecolor{akcentjasny}{HTML}{5B7FA8}
+
+% UWAGA: kolor bazowy MUSI być ustawiony przed kolorami pochodnymi
+\setbeamercolor{structure}{fg=akcent}
+
+% paski nagłówka
+\setbeamercolor{palette primary}{bg=akcent,fg=white}
+\setbeamercolor{palette secondary}{bg=akcentjasny,fg=white}
+\setbeamercolor{palette tertiary}{bg=akcent,fg=white}
+\setbeamercolor{section in head/foot}{bg=akcent,fg=white}
+\setbeamercolor{subsection in head/foot}{bg=akcentjasny,fg=white}
+
+% kropki nawigacji
+\setbeamercolor{mini frame}{fg=white,bg=akcentjasny}
+
+% tytuł slajdu — jasny tekst na ciemnym tle
+\setbeamercolor{frametitle}{bg=akcent,fg=white}
+\setbeamerfont{frametitle}{series=\bfseries}
+
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{itemize items}[circle]
+\setbeamercolor{block title}{bg=akcentjasny!25,fg=akcent}
+\setbeamercolor{block body}{bg=akcentjasny!10}
+
+\graphicspath{{../thesis/figures/eda/filtered/}}
+
+\newcommand{\ndcg}{NDCG@10}
+\newcommand{\rownawysokosc}{\vphantom{\dfrac{\log(1+r)}{1+\log(1+r)}}}
+
+% ==================== METADANE ====================
+
+\title[Funkcje pewności w implicit ALS]{Wpływ funkcji pewności na jakość rekomendacji gier\\
+w modelu implicit ALS}
+\author{Michał Tałałaj}
+\institute{Wydział Matematyki i Nauk Informacyjnych\\
+Politechnika Warszawska\\[1ex]
+\small promotor: dr inż. Robert Małysz}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}[plain]
+  \titlepage
+\end{frame}
+
+% ============================================================
+\section{Wprowadzenie}
+% ============================================================
+
+\begin{frame}{Motywacja}
+
+  \begin{itemize}
+    \item W systemach rekomendacyjnych rzadko dysponujemy jawnymi ocenami. Dostępne są jedynie ślady zachowań, takie jak kliknięcia, zakupy czy czas interakcji.
+
+
+
+    \item Model implicit ALS rozdziela taki sygnał na dwie części:
+          \begin{itemize}
+            \item[]  -- czy wystąpiła interakcja -- $p_{ui}$,
+            \item[]  -- jak bardzo ufamy tej obserwacji -- $c_{ui}$.
+          \end{itemize}
+
+    \item Postać funkcji $c_{ui}$ decyduje o~tym, w~jakim stopniu model różnicuje obserwacje o~różnej intensywności.
+  \end{itemize}
+
+  \vspace{1em}
+
+\begin{block}{Luka badawcza}
+
+Wybór tej funkcji bywa przyjmowany jako założenie, bez porównania jej różnych postaci i weryfikacji, czy różnicowanie wag poprawia jakość rekomendacji.
+
+\end{block}
+
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Pytania badawcze}
+
+  \begin{description}
+    \item[PB1] Czy sposób przekształcenia czasu gry na wagi pewności wpływa na jakość
+               rekomendacji?
+    \vspace{0.6em}
+    \item[PB2] Czy różnicowanie wag według czasu gry przewyższa wariant o~stałej wadze?
+    \vspace{0.6em}
+    \item[PB3] Jak wybór funkcji pewności wpływa na miary wykraczające poza trafność oraz czy poprawa trafności odbywa się kosztem innych aspektów jakości?
+    \vspace{0.6em}
+    \item[PB4] Który czynnik ma większy wpływ na wyniki: sposób ważenia obserwacji czy klasa modelu?
+
+  \end{description}
+
+\end{frame}
+
+% ============================================================
+\section{Metodologia}
+% ============================================================
+
+\begin{frame}{Porównywane modele}
+
+  \begin{columns}[t]
+    \begin{column}{0.32\textwidth}
+      \textbf{implicit ALS}
+      \begin{itemize}
+        \item podejście punktowe
+        \item minimalizacja ważonego błędu kwadratowego
+        \item pięć wariantów $c_{ui}$
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.32\textwidth}
+      \textbf{BPR}
+      \begin{itemize}
+        \item podejście parowe
+        \item maksymalizacja prawdopodobieństwa poprawnego uporządkowania
+        \item sygnał binarny
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.32\textwidth}
+      \textbf{Popularność}
+      \begin{itemize}
+        \item punkt odniesienia
+        \item brak personalizacji
+        \item brak hiperparametrów
+      \end{itemize}
+    \end{column}
+  \end{columns}
+
+  \vspace{1.5em}
+  \begin{center}
+    \small Wszystkie modele dostrojono niezależnie i~oceniono na tym samym zbiorze testowym.
+  \end{center}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Badane funkcje pewności}
+  \small
+  \begin{alignat*}{2}
+    c_{ui} &= 1 + \alpha r_{ui}\rownawysokosc
+    &&\hspace{4em} \text{liniowa \hspace{0.5em}\emph{(Hu i in.)}} \\
+    c_{ui} &= 1 + \alpha \log(1 + r_{ui})\rownawysokosc
+    &&\hspace{4em} \text{logarytmiczna \hspace{0.5em}\emph{(Hu i in.)}} \\
+    c_{ui} &= 1 + \alpha
+    \frac{\log(1+r_{ui})}{1+\log(1+r_{ui})}\rownawysokosc
+    &&\hspace{4em} \text{z saturacją \hspace{0.5em}\emph{(własna)}} \\
+    c_{ui} &= 1 + \alpha \log(1 + r_{ui} + \beta)\rownawysokosc
+    &&\hspace{4em} \text{z przesunięciem $\beta$ \hspace{0.5em}\emph{(własna)}} \\
+    c_{ui} &= 1 + \gamma\rownawysokosc
+    &&\hspace{4em} \text{stała \hspace{0.5em}\emph{(warunek kontrolny)}}
+  \end{alignat*}
+
+  \vspace{0.5em}
+  \centering
+  Uporządkowane według malejącego stopnia różnicowania sygnału.
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Dane}
+
+  \begin{columns}[c]
+    \begin{column}{0.42\textwidth}
+      \textbf{Steam} (kolekcja J.~McAuleya)
+
+      \vspace{0.8em}
+      \small
+      \begin{tabular}{lr}
+        \toprule
+        interakcje & 5\,132\,610 \\
+        użytkownicy & 62\,944 \\
+        gry & 9\,198 \\
+        gęstość & 0{,}00887 \\
+        \bottomrule
+      \end{tabular}
+
+      \vspace{1em}
+      \begin{itemize}
+        \item mediana czasu gry: \textbf{35 min}
+        \item \textbf{ok.~1/3} interakcji z~zerowym czasem gry
+      \end{itemize}
+    \end{column}
+
+    \begin{column}{0.56\textwidth}
+      % ---------- WYKRES: rozkład czasu gry ----------
+      \begin{center}
+        \includegraphics[width=\textwidth,height=0.6\textheight,keepaspectratio]%
+          {filtered_positive_playtime_logscale_hist.png}
+      \end{center}
+      \vspace{-0.5em}
+      \begin{center}
+        \scriptsize Rozkład dodatniego czasu gry (skala logarytmiczna)
+      \end{center}
+    \end{column}
+  \end{columns}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Przebieg badania}
+
+  \begin{columns}[t]
+    \begin{column}{0.48\textwidth}
+      \textbf{Przygotowanie i~strojenie}
+      \begin{itemize}
+        \item filtracja: min.~5 gier / 5 użytkowników
+        \item podział 81/9/10 losowo w~profilu użytkownika
+        \item Optuna (TPE), 150 prób na wariant
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \textbf{Ewaluacja} (listy długości 10)
+      \begin{itemize}
+        \item trafność: precyzja, pełność, NDCG
+        \item poza trafnością: pokrycie katalogu, ILD, $\Delta$GAP
+        \item stabilność: 5 podziałów, 5 inicjalizacji
+        \item test Wilcoxona + korekta Holma-Bonferroniego
+        \item bootstrap: 5000 powtórzeń, 95\% CI
+      \end{itemize}
+    \end{column}
+  \end{columns}
+
+\end{frame}
+
+% ============================================================
+\section{Wyniki}
+% ============================================================
+
+\begin{frame}{Wynik główny}
+
+  % ---------- WYKRES: NDCG wszystkich modeli ----------
+  \begin{center}
+    \includegraphics[width=0.8\textwidth,height=0.62\textheight,keepaspectratio]%
+      {../results/figures_revised/test_ndcg_all_models_horizontal.png}
+  \end{center}
+
+  \vspace{0.3em}
+  \begin{itemize}
+    \item Najwyższą trafność osiąga wariant \textbf{o~stałej funkcji pewności} (0,3565).
+    \item Poprawa: \textbf{+6,2\%} wzgl.~logarytmicznego, \textbf{+8,1\%} wzgl.~liniowego.
+  \end{itemize}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Istotność statystyczna i wielkość efektu}
+\begin{itemize}
+  \item Test Wilcoxona, 10 porównań parowych, korekta Holma-Bonferroniego. \textbf{Wszystkie różnice istotne} na poziomie 0,05.
+
+  \item Duża liczba obserwacji ($n = 62\,944$) sprawia, że istotne są także niewielkie różnice, dlatego wyznaczono wielkość efektu metodą bootstrapu.
+
+\end{itemize}
+
+  \vspace{0.6em}
+  \begin{center}
+    \small
+    \begin{tabular}{lrr}
+      \toprule
+      Porównanie & średnia różnica \ndcg{} & 95\% CI \\
+      \midrule
+      stała vs liniowa & 0,0266 & $[0{,}0248;\ 0{,}0284]$ \\
+      stała vs z~przesunięciem $\beta$ & 0,0049 & $[0{,}0045;\ 0{,}0052]$ \\
+      log. vs log. z~saturacją & $-0{,}0002$ & $[-0{,}0003;\ -0{,}0001]$ \\
+      \bottomrule
+    \end{tabular}
+  \end{center}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Czego nie widać bez warunku kontrolnego}
+
+  \begin{block}{Problem}
+    Kolejne przekształcenia dawały coraz lepsze wyniki. Nie wiadomo jednak,
+    czy poprawa wynika z~lepszego odwzorowania siły preferencji, czy z~czegoś innego.
+  \end{block}
+
+  \vspace{0.8em}
+  \begin{itemize}
+    \item Wariant z~przesunięciem $\beta$ zmienia \textbf{dwie rzeczy naraz}: podnosi
+          poziom bazowy pewności i~kompresuje różnice między obserwacjami.
+
+    \item Oba efekty sterowane są \textbf{tym samym parametrem}, więc nie da się ustalić,
+          któremu z~nich przypisać poprawę.
+
+    \item Rozstrzyga dopiero przypadek graniczny: funkcja, która \textbf{całkowicie
+          pomija} czas gry, czyli oryginalny wzór $c_{ui} = 1 + \alpha r_{ui}$
+          zastosowany do sygnału $r_{ui} \in \{0,1\}$.
+  \end{itemize}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Diagnoza: przekształcenia zapadają się do postaci binarnej}
+
+  \begin{columns}[c]
+    \begin{column}{0.54\textwidth}
+      \includegraphics[width=\textwidth,height=0.58\textheight,keepaspectratio]%
+        {../results/figures/wrazliwosc_ndcg_vs_alpha.png}
+    \end{column}
+
+    \begin{column}{0.44\textwidth}
+      \small
+      \begin{itemize}
+        \item Dla wszystkich wariantów poza tym z~$\beta$ optimum leży przy
+              $\alpha \to 0$, strojenie samo usuwa różnicowanie wag.
+
+        \item Wariant z~$\beta$ tylko pozornie stanowi wyjątek, przy
+              $\beta = 108{,}3$ pewność rośnie od $c(0) = 2{,}83$ zaledwie do
+              $c(35) = 2{,}94$.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+
+\end{frame}
+
+% ============================================================
+\section{Kompromisy}
+% ============================================================
+
+\begin{frame}{Pokrycie katalogu}
+
+  \begin{columns}[c]
+    \begin{column}{0.56\textwidth}
+      % ---------- WYKRES: NDCG vs coverage ----------
+      \includegraphics[width=\textwidth,height=0.68\textheight,keepaspectratio]%
+        {../results/figures_revised/test_ndcg_vs_coverage_all_models.png}
+    \end{column}
+
+    \begin{column}{0.42\textwidth}
+      \small
+      \begin{itemize}
+        \item \textbf{Brak kompromisu wewnątrz rodziny ALS} -- czołowe warianty mają
+              jednocześnie najwyższe pokrycie.
+
+        \item BPR: \textbf{0,3039} -- ponad dwukrotnie większe niż najlepszy ALS,
+              kosztem trafności.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Różnorodność wewnątrzlistowa}
+
+  \begin{columns}[c]
+    \begin{column}{0.56\textwidth}
+      % ---------- WYKRES: NDCG vs ILD ----------
+      \includegraphics[width=\textwidth,height=0.68\textheight,keepaspectratio]%
+        {../results/figures_revised/test_ndcg_vs_ild_cooccurrence.png}
+    \end{column}
+
+    \begin{column}{0.42\textwidth}
+      \small
+      \begin{itemize}
+        \item BPR: wysoka różnorodność (0,7363) przy najniższej trafności wśród
+              modeli faktoryzacji.
+
+        \item Wewnątrz ALS wartości rosną z~liczbą czynników ukrytych, ale sam wymiar
+              nie przesądza -- BPR przy $f=96$ ustępuje wariantowi liniowemu przy $f=80$.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Obciążenie popularnością}
+
+  \begin{columns}[c]
+    \begin{column}{0.56\textwidth}
+      % ---------- WYKRES: NDCG vs delta GAP ----------
+      \includegraphics[width=\textwidth,height=0.68\textheight,keepaspectratio]%
+        {../results/figures_revised/test_ndcg_vs_delta_gap_without_popularity.png}
+    \end{column}
+
+    \begin{column}{0.42\textwidth}
+      \small
+      \begin{itemize}
+        \item $\Delta$GAP $=0$ oznacza zgodność
+              popularności rekomendacji z~profilem użytkownika.
+
+        \item Wariant liniowy i~BPR: wartości ujemne. Możliwe wyjaśnienia: większa
+              wymiarowość i~słabsza regularyzacja albo po prostu słabsze dopasowanie.
+      \end{itemize}
+
+      \vspace{0.5em}
+      \scriptsize Model popularnościowy ($\Delta$GAP $=1{,}42$) pominięto dla czytelności.
+    \end{column}
+  \end{columns}
+
+\end{frame}
+
+% ============================================================
+\section{Wnioski}
+% ============================================================
+
+\begin{frame}{Odpowiedzi na pytania badawcze}
+
+  \begin{description}
+    \item[PB1] Tak, ale w~kierunku odwrotnym do oczekiwanego -- najlepiej wypadają
+               przekształcenia słabiej uzależnione od czasu gry.
+    \vspace{0.5em}
+    \item[PB2] Nie. Wariant stały osiąga najwyższą trafność w~badanym zbiorze.
+    \vspace{0.5em}
+    \item[PB3] Niewielkie kompromisy wewnątrz rodziny ALS, ujawniają się dopiero przy zmianie klasy modelu.
+    \vspace{0.5em}
+    \item[PB4] Różnice między klasami modeli są kilkukrotnie większe niż te wewnątrz rodziny ALS.
+  \end{description}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Ograniczenia i kierunki dalszych badań}
+
+  \begin{columns}[t]
+    \begin{column}{0.48\textwidth}
+      \textbf{Ograniczenia}
+      \small
+      \begin{itemize}
+        \item jeden zbiór danych
+        \item warianty dostrojone niezależnie -- różnią się też $f$ i~$\lambda$
+        \item sygnał: czas akumulowany przez cały okres posiadania
+        \item ewaluacja offline
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \textbf{Dalsze badania}
+      \small
+      \begin{itemize}
+        \item \textbf{funkcje niemonotoniczne} -- krótka rozgrywka może być sygnałem
+              \emph{negatywnym}
+        \item rozdzielenie poziomu bazowego od członu zależnego od czasu gry
+        \item normalizacja względem typowego czasu rozgrywki dla gatunku
+        \item eksperyment przy ustalonym $f$ dla wszystkich wariantów
+      \end{itemize}
+    \end{column}
+  \end{columns}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}[plain]
+  \begin{center}
+    \Large Dziękuję za uwagę
+  \end{center}
+\end{frame}
+
+% ============================================================
+% SLAJDY ZAPASOWE — do pytań komisji
+% ============================================================
+
+\appendix
+
+\begin{frame}{Zapas: hiperparametry}
+  \centering\small
+  \begin{tabular}{lrrrr}
+    \toprule
+    Wariant & $f$ & $\alpha$ & $\beta$ / $\gamma$ & $\lambda$ \\
+    \midrule
+    Liniowa & 80 & $9{,}948\cdot10^{-7}$ & --- & 0,003588 \\
+    Logarytmiczna & 24 & 0,000571 & --- & 0,130920 \\
+    Log. z~saturacją & 24 & 0,024390 & --- & 0,169714 \\
+    Log. z~przesunięciem $\beta$ & 48 & 0,389185 & 108,284 & 0,010565 \\
+    Stała & 48 & --- & 2,364 & 0,057607 \\
+    BPR & 96 & --- & --- & 0,003237 \\
+    \bottomrule
+  \end{tabular}
+
+  \vspace{1em}
+  \small Wszystkie warianty ALS: 30 iteracji. BPR: 150 iteracji, krok uczenia 0,001760.
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Zapas: funkcja celu implicit ALS}
+  \begin{equation*}
+    \mathcal{L}_{\text{iALS}} = \sum_{u=1}^{m}\sum_{i=1}^{n} c_{ui}\left(p_{ui} -
+    \mathbf{x}_u^T\mathbf{y}_i\right)^2 + \lambda\left(\sum_u \|\mathbf{x}_u\|_2^2 +
+    \sum_i \|\mathbf{y}_i\|_2^2\right)
+  \end{equation*}
+
+  \vspace{1em}
+  Naprzemienna optymalizacja -- przy ustalonej macierzy $\mathbf{Y}$:
+  \begin{equation*}
+    \mathbf{x}_u = \left(\mathbf{Y}^T\mathbf{C}^u\mathbf{Y} + \lambda\mathbf{I}_f\right)^{-1}
+    \mathbf{Y}^T\mathbf{C}^u\mathbf{p}^u
+  \end{equation*}
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Zapas: kryterium optymalizacyjne BPR}
+
+  Dla trójek $(u,i,j) \in D_S$, gdzie $i$ to obiekt zaobserwowany, a~$j$ niezaobserwowany:
+  \begin{equation*}
+    \hat{s}_{uij} = \mathbf{x}_u^T\mathbf{y}_i - \mathbf{x}_u^T\mathbf{y}_j
+  \end{equation*}
+
+  \vspace{0.5em}
+  Maksymalizacja prawdopodobieństwa a~posteriori prowadzi do kryterium:
+  \begin{equation*}
+    \mathcal{L}_{\text{BPR}}(\Theta) = \sum_{(u,i,j) \in D_S} \ln \sigma(\hat{s}_{uij})
+    - \lambda_\Theta \left( \sum_{u} \|\mathbf{x}_u\|_2^2 + \sum_{i} \|\mathbf{y}_i\|_2^2 \right)
+  \end{equation*}
+
+  \vspace{0.8em}
+  \begin{itemize}
+    \small
+    \item Uczenie: LearnBPR -- stochastyczne wznoszenie gradientu z~próbkowaniem
+          bootstrapowym.
+    \item Brak wag pewności -- model operuje wyłącznie na uporządkowaniu par,
+          nie na intensywności interakcji.
+  \end{itemize}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Zapas: definicje metryk}
+
+  \small
+  \begin{columns}[t]
+    \begin{column}{0.49\textwidth}
+      \textbf{Trafność}
+      \begin{align*}
+        \text{DCG}_u@N &= \sum_{k=1}^{N}
+          \frac{\mathbf{1}\!\left(i_k^{(u)} \in \mathcal{I}_u^{\text{test}}\right)}{\log_2(k+1)} \\[0.5em]
+        \ndcg{} &= \frac{1}{|\mathcal{U}|}\sum_{u}
+          \frac{\text{DCG}_u@N}{\text{IDCG}_u@N}
+      \end{align*}
+
+      \vspace{0.5em}
+      \textbf{Pokrycie katalogu}
+      \begin{equation*}
+        \text{Coverage}@N =
+        \frac{\left|\bigcup_{u} \mathcal{R}_u^N\right|}{|\mathcal{I}|}
+      \end{equation*}
+    \end{column}
+
+    \begin{column}{0.49\textwidth}
+      \textbf{Różnorodność wewnątrzlistowa}
+      \begin{equation*}
+        \text{ILD}_u@N = \frac{2}{N(N-1)}
+        \sum_{k<l} d_{\cos}\!\left(i_k^{(u)}, i_l^{(u)}\right)
+      \end{equation*}
+      \scriptsize odległość liczona na współwystępowaniu w~macierzy $\mathbf{P}$
+
+      \vspace{1em}
+      \small
+      \textbf{Obciążenie popularnością}
+      \begin{equation*}
+        \Delta\text{GAP}@N =
+        \frac{\text{GAP}_{\text{rec}}@N - \text{GAP}_{\text{profile}}}{\text{GAP}_{\text{profile}}}
+      \end{equation*}
+      \scriptsize $\text{GAP}$ --- średnia popularność pozycji odpowiednio
+      na~liście rekomendacji i~w~profilu użytkownika
+    \end{column}
+  \end{columns}
+
+\end{frame}
+% ============================================================
+
+\begin{frame}{Zapas: pełne wyniki testowe}
+  \centering\scriptsize
+  \begin{tabular}{lrrrrrr}
+    \toprule
+    Model & \ndcg{} & P@10 & R@10 & Cov@10 & $\Delta$GAP@10 & ILD@10 \\
+    \midrule
+    Popularność & 0,1855 & 0,0965 & 0,1783 & 0,0087 & 1,4233 & --- \\
+    ALS liniowa & 0,3299 & 0,1841 & 0,2642 & 0,1178 & $-0{,}2112$ & 0,7528 \\
+    ALS logarytmiczna & 0,3356 & 0,1810 & 0,3019 & 0,0762 & 0,5433 & 0,6469 \\
+    ALS log. z~saturacją & 0,3354 & 0,1809 & 0,3019 & 0,0761 & 0,5443 & 0,6470 \\
+    ALS log. z~przes.~$\beta$ & 0,3517 & 0,1956 & 0,3338 & 0,1313 & 0,4191 & 0,6841 \\
+    \textbf{ALS stała} & \textbf{0,3565} & \textbf{0,1978} & \textbf{0,3370} & \textbf{0,1374} & 0,4210 & 0,6825 \\
+    BPR & 0,2703 & 0,1329 & 0,2614 & \textbf{0,3039} & $-0{,}0789$ & 0,7363 \\
+    \bottomrule
+  \end{tabular}
+
+  \vspace{1em}
+  \small Odchylenia standardowe metryk trafności nie przekraczają 0,2\% wartości średniej.
+\end{frame}
+
+\end{document}

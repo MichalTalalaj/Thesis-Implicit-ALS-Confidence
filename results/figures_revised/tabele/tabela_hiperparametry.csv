@@ -1,0 +1,7 @@
+﻿Model,Liczba czynników,Iteracje,α,β,γ,Regularyzacja,Współczynnik uczenia,NDCG@10 (walidacja),Liczba prób
+BPR,96,150,—,—,—,3.2375e-03,1.7603e-03,0.2118,
+stała (γ),48,30,1.000e+00,—,2.3642,5.7607e-02,—,0.2801,150.0
+liniowa,80,30,9.948e-07,—,—,3.5879e-03,—,0.2489,150.0
+logarytmiczna,24,30,5.714e-04,—,—,1.3092e-01,—,0.2613,150.0
+logarytmiczna z saturacją,24,30,2.439e-02,—,—,1.6971e-01,—,0.2614,150.0
+logarytmiczna z przesunięciem β,48,30,3.892e-01,108.28,—,1.0565e-02,—,0.2753,150.0

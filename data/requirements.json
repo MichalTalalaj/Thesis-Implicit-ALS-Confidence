@@ -1,0 +1,24 @@
+{
+  "required_for_main_experiments": [
+    {
+      "name": "Steam Version 1: User and Item Data",
+      "source_page": "https://cseweb.ucsd.edu/~jmcauley/datasets.html#steam_data",
+      "download_url": "https://mcauleylab.ucsd.edu/public_datasets/data/steam/australian_users_items.json.gz",
+      "local_path": "data/raw/australian_users_items.json",
+      "compressed_alternative": "data/raw/australian_users_items.json.gz",
+      "format": "UTF-8 Python dictionary literals, one user record per line; nested items",
+      "local_decompressed_bytes": 553094816,
+      "local_decompressed_sha256": "6c9ae1324d672c374ca808375a0bf49f3efcdf2f578a14dfe287926834bbb4c4",
+      "checksum_scope": "User-supplied decompressed file, not an upstream-published checksum",
+      "included_in_git": false,
+      "preparation_module": "steam_recommender.prepare_data"
+    }
+  ],
+  "additional_inputs_for_supporting_analysis": [
+    {
+      "local_path": "data/raw/steam_games_final.csv",
+      "required_by": ["filtered EDA game labels", "Bayram paid-game comparison"],
+      "reconstruction_status": "Prepared metadata available locally; conversion from upstream is not reconstructed by the user/item importer"
+    }
+  ]
+}

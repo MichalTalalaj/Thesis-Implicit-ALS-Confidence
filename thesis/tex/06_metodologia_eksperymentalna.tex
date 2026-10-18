@@ -1,0 +1,90 @@
+\chapter{Metodyka eksperymentów}
+\label{chap:metodologia}
+
+\section{Przygotowanie danych}
+
+Przed właściwym procesem trenowania modeli dane zostały poddane wstępnej obróbce. W analizowanym zbiorze nie występowały braki danych, więc ich filtracja nie była konieczna. Ze względu na obecność wartości odstających zmiennej \texttt{playtime\_forever} zdecydowano się na ograniczenie jej wartości do $120\,000$ minut, co odpowiada 2\,000~godzin i~w~przybliżeniu percentylowi 99{,}97 rozkładu w~zbiorze danych. Obserwacje powyżej tej granicy zostały zastąpione wartością $120\,000$. Przyjęty próg ogranicza wpływ wartości skrajnych i potencjalnych błędów pomiarowych, przy jednoczesnym zachowaniu sygnału o ekstremalnym zaangażowaniu użytkowników.
+
+Usunięto gry przypisane do mniej niż pięciu użytkowników oraz użytkowników posiadających w~bibliotece mniej niż pięć gier. Miało to na celu zmniejszenie wpływu zimnego startu na wyniki modeli oraz umożliwienie późniejszego podziału danych na zbiory treningowy, walidacyjny i testowy, w sposób zapewniający, że każdy użytkownik pojawi się w każdym z tych zbiorów. Podejścia stosowane w~pracach wykorzystujących ten sam zbiór danych są wyraźnie bardziej restrykcyjne. Obejmują one usuwanie interakcji z~zerowym czasem gry oraz ograniczanie zbioru do najaktywniejszych użytkowników i~najpopularniejszych tytułów~\cite{bunga2021implicit,cheuque2019steam}. Zabiegi tego rodzaju zwiększają gęstość macierzy interakcji, jednak zawężają populację i~czynią zadanie ewaluacyjne mniej wymagającym. Szczegółowe zestawienie różnic wraz z~ich konsekwencjami dla porównywalności wyników przedstawiono w~podrozdziale~\ref{sec:porownanie-literatura}.
+
+Zbiór po filtracji został podzielony na zbiory: treningowy, walidacyjny i testowy. Dla każdego użytkownika do zbioru testowego przypisano liczbę interakcji równą
+$\left\lceil 0{,}1 \cdot n_u \right\rceil$,
+gdzie $n_u$ oznacza liczbę interakcji danego użytkownika. Zastosowano zaokrąglenie w górę, aby zapewnić, że każdy użytkownik będzie miał co najmniej jedną interakcję w zbiorze testowym. Podział został przeprowadzony w sposób losowy ze względu na brak informacji o datach przypisania produktów do bibliotek użytkowników. Z pozostałej części danych, stanowiącej w przybliżeniu $90\%$ zbioru, wydzielono do zbioru walidacyjnego liczbę interakcji wyznaczoną analogicznie, czyli $\left\lceil 0{,}1 \cdot n_{u,\text{rem}} \right\rceil$, gdzie $n_{u,\text{rem}}$ oznacza pozostałą po pierwszym podziale liczbę interakcji użytkownika. Ostateczna struktura podziału danych wynosi zatem w przybliżeniu $81\%$ dla zbioru treningowego, $9\%$ dla walidacyjnego oraz $10\%$ dla testowego, co jest rozwiązaniem bardzo zbliżonym do proporcji stosowanych m.in. w pracach~\cite{wang2019neural, moscati2026networked} oraz standardowego podziału w bibliotece RecBole~\cite{recbole}. Na każdym etapie ustalono stałą wartość ziarna generatora liczb pseudolosowych, co zapewnia powtarzalność podziału danych.
+
+\section{Porównywane modele}
+\label{sec:porownywane-modele}
+
+Porównano siedem modeli rekomendacyjnych, w tym pięć modeli implicit ALS z różnymi funkcjami pewności oraz model Bayesian Personalized Ranking, których implementacje pochodzą z biblioteki \texttt{implicit} w wersji 0.7.2~\cite{frederickson2022implicit}. Zastosowane funkcje pewności to:
+\begin{itemize}
+    \item $c_{ui} = 1 + \alpha r_{ui}$,
+    \item $c_{ui} = 1 + \alpha \log(1 + r_{ui})$,
+    \item $c_{ui} = 1 + \alpha \frac{\log(1 + r_{ui})}{1 + \log(1 + r_{ui})}$,
+    \item $c_{ui} = 1 + \alpha \log(1 + r_{ui} + \beta) \cdot \mathbf{1}(p_{ui} = 1)$,
+    \item $c_{ui} = 1 + \gamma \cdot \mathbf{1}(p_{ui} = 1)$,
+\end{itemize}
+gdzie $r_{ui}$ oznacza wartość zmiennej \texttt{playtime\_forever} dla użytkownika $u$ i gry $i$, a $\alpha$ stanowi skalar regulujący siłę wpływu czasu gry. Dla par niezaobserwowanych ($p_{ui} = 0$) waga pewności wynosi $c_{ui} = 1$, co w~przypadku dwóch ostatnich funkcji zapewnia wskaźnik $\mathbf{1}(p_{ui}=1)$. W~dalszej części pracy funkcje te przywoływane są w~postaci skróconej, z~pominięciem wskaźnika. Dwie pierwsze funkcje stanowią klasyczne sformułowania zaproponowane w pracy \cite{hu2008implicit}. 
+
+Funkcje logarytmiczna z~saturacją oraz logarytmiczna z~przesunięciem $\beta$ są wariantami zaproponowanymi na potrzeby niniejszej pracy, opracowanymi na podstawie analizy rozkładu zmiennej \texttt{playtime\_forever} przedstawionej w~rozdziale~\ref{chap:eda}. Wariant stały odpowiada wzorowi $c_{ui} = 1 + \alpha r_{ui}$ zastosowanemu do zbinaryzowanego sygnału, w~którym $r_{ui}$ przyjmuje wartość $1$ dla każdej gry obecnej w~bibliotece.
+
+Wartości funkcji pewności $c_{ui}$ wyznaczano dla par użytkownik--gra zapisanych w ramce danych. Następnie na ich podstawie, z wykorzystaniem biblioteki \texttt{scipy} w wersji 1.17.1, tworzono macierz rzadką przekazywaną do metody \texttt{fit()} modeli ALS. W przypadku modeli implicit ALS parametr \texttt{alpha} klasy \texttt{AlternatingLeastSquares} z biblioteki \texttt{implicit} pozostawiono równy $1$, ponieważ został on uwzględniony bezpośrednio podczas wyznaczania wartości $c_{ui}$. Ze względu na to, że każda funkcja pewności przyjmuje dla $r_{ui}=0$ wartość co najmniej $1$, podczas tworzenia macierzy rzadkiej nie została utracona żadna para użytkownik--gra obecna w zbiorze danych. Oznacza to, że również obserwacje z $\texttt{playtime\_forever}=0$ są uwzględniane jako obserwacje pozytywne.
+
+Model Bayesian Personalized Ranking otrzymywał binarną macierz rzadką, w której każdej obserwowanej parze użytkownik--gra przypisano wartość $1$. Dzięki temu zarówno modele ALS, jak i BPR operowały na tym samym zbiorze obserwowanych par. W obu przypadkach pary użytkownik--gra nieobecne w zbiorze danych nie były traktowane jako obserwacje pozytywne.
+
+Punkt odniesienia dla obu rodzin modeli stanowi rekomendacja oparta na popularności. Dla każdego użytkownika generuje ona listę $N$ tytułów o~największej liczbie użytkowników w~zbiorze treningowym, z~pominięciem pozycji już obecnych w~jego bibliotece. Jego uwzględnienie
+pozwala ocenić, jaka część trafności modeli faktoryzacyjnych wykracza poza odtworzenie rozkładu popularności opisanego w~rozdziale~\ref{chap:eda}.
+
+W szczególności, funkcja $c_{ui} = 1 + \alpha \log(1 + r_{ui} + \beta)$ została zaprojektowana w celu zmniejszenia wpływu szumu wynikającego z dużej liczby obserwacji o niskim czasie gry, przy jednoczesnym wprowadzeniu przesunięcia $\beta$. Pozwala ono nadawać obserwacjom z \texttt{playtime\_forever = 0} wagę pewności większą niż $1$, co jest traktowane w pracy jako wstępny sygnał zainteresowania użytkownika. Aby zweryfikować, czy ewentualna poprawa wyników wynika z połączonego efektu kompresji szumu i dodatkowej wagi bazowej, czy też wyłącznie z faktu przypisania wyższej ufności zerowym obserwacjom, wprowadzono dodatkowo funkcję $c_{ui} = 1 + \gamma$, gdzie $\gamma$ jest hiperparametrem. Aby uniknąć arbitralnego wyboru wartości, oba nowe hiperparametry, $\beta$ oraz $\gamma$, poddano procesowi optymalizacji.
+
+\section{Strojenie hiperparametrów}
+
+Proces strojenia hiperparametrów został przeprowadzony na podstawie zbioru walidacyjnego. Celem była optymalizacja \ndcg{} dla każdego z modeli. Metryka ta została wybrana ze względu na jej własności opisane w podrozdziale~\ref{subsec:ndcg}. Procedura miała charakter dwuetapowy. Najpierw przeprowadzono szerokie przeszukanie siatkowe dla wszystkich modeli, aby znaleźć przybliżony zakres najlepszych wartości hiperparametrów, a następnie dokładnie przeszukano ten zakres z~wykorzystaniem biblioteki Optuna~\cite{akiba2019optuna}, stosując estymator drzewiasty Parzena. W przypadku modeli implicit ALS strojenie obejmowało hiperparametry $\alpha$, $\beta$ i $\gamma$ odpowiedzialne za wagę pewności, liczbę czynników ukrytych $f$ oraz siłę regularyzacji $\lambda$. Liczba iteracji algorytmu ALS została ustalona na 30, ze względu na brak istotnej poprawy wyników przy większej liczbie iteracji podczas wstępnego przeszukiwania siatkowego. Natomiast dla modelu BPR strojenie obejmowało $f$, $\lambda_\Theta$, liczbę iteracji oraz długość kroku $\eta$. W przypadku modelu popularnościowego nie przeprowadzano strojenia ze względu na brak hiperparametrów. Dla każdego z optymalizowanych modeli przeprowadzono 150 prób algorytmu w jednej serii. Aby wykluczyć ryzyko znalezienia nie w pełni optymalnych rozwiązań, po każdej serii oceniano stabilność metryki celowej oraz stopień skupienia uzyskanych hiperparametrów wokół znalezionego optimum. W sytuacjach, gdy najlepsze próby wykazywały dużą zmienność wartości hiperparametrów lub gdy znaleziona kombinacja znajdowała się na granicy przeszukiwanego przedziału, procedurę powtarzano z rozszerzonym lub przesuniętym zakresem aż do uzyskania spójnych wyników. Każdy etap przeprowadzono z ustalonym ziarnem generatora liczb pseudolosowych, co gwarantuje reprodukowalność procesu optymalizacji.
+
+
+\section{Finalna ewaluacja testowa}
+
+Po wybraniu optymalnych wartości hiperparametrów dla każdego z~modeli obliczono odchylenie standardowe metryk dla pięciu losowych podziałów na zbiór treningowy i~walidacyjny, w~celu sprawdzenia stabilności wyników ze względu na losowość podziału danych. Następnie modele wytrenowano ponownie na połączonym zbiorze treningowym i~walidacyjnym, z~hiperparametrami wybranymi na podstawie zbioru walidacyjnego, po czym poddano je ewaluacji z~użyciem miar trafności:  precyzji, pełności oraz $\text{NDCG}$, a~także miar wykraczających poza trafność: pokrycia katalogu, różnorodności wewnątrzlistowej ($\text{ILD}$) oraz różnicy w~popularności rekomendacji ($\Delta\text{GAP}$). Każdą z~metryk obliczono dla listy rekomendacji o~długości 10, co stanowi rozwiązanie powszechnie przyjmowane w~literaturze~\cite{he2017neural,rendle2020neural}, a~następnie uśredniono po wszystkich użytkownikach. Ewaluację powtórzono pięciokrotnie przy stałym podziale danych i~zmiennym ziarnie inicjalizacji modelu, co pozwala oddzielić zmienność wynikającą z~podziału danych od zmienności wynikającej z~inicjalizacji; dla uzyskanych wartości wyznaczono średnią oraz odchylenie standardowe. Wyjątek stanowi różnorodność wewnątrzlistowa, którą ze względu na koszt obliczeniowy wyznaczono dla pojedynczego uruchomienia i~pominięto w~analizie stabilności. Odwzorowanie identyfikatorów zbioru testowego na indeksy wyznaczone na zbiorze treningowym powoduje pominięcie interakcji dotyczących użytkowników lub gier nieobecnych w~zbiorze treningowym. W~przeprowadzonym eksperymencie sytuacja taka nie wystąpiła. Zatem wszystkie 541\,231 interakcji testowych zostały uwzględnione przy wyznaczaniu metryk.
+
+Metrykę \ndcg{} wyznaczono dodatkowo indywidualnie dla każdego użytkownika, uśredniając wartości uzyskane w~pięciu uruchomieniach. Tak przygotowane wartości posłużyły do przeprowadzenia testu Wilcoxona dla par obserwacji we wszystkich dziesięciu porównaniach parowych między wariantami funkcji pewności, z~korektą Holma-Bonferroniego na wielokrotne testowanie. Ze względu na dużą liczbę użytkowników, przy której istotność statystyczną osiągają również różnice o~niewielkiej skali, dla każdej pary wariantów wyznaczono ponadto medianę oraz średnią sparowanej różnicy \ndcg{} wraz z~95-procentowym przedziałem ufności. Przedziały oszacowano za pomocą nieparametrycznego bootstrapu dla prób zależnych na poziomie użytkownika. W~każdym z~5\,000 powtórzeń losowano ze zwracaniem $n=62\,944$ użytkowników, a~następnie dla każdego powtórzenia obliczano średnią sparowanej różnicy \ndcg{} na podstawie tych samych wylosowanych użytkowników. Wspólny zestaw indeksów bootstrapowych był wykorzystywany dla wszystkich porównań, dzięki czemu zachowano strukturę zależności między wynikami uzyskiwanymi przez tego samego użytkownika dla poszczególnych wariantów. Przedział ufności wyznaczano metodą percentylową, przyjmując 2{,}5. i~97{,}5. percentyl rozkładu wartości uzyskanych w~bootstrapie jako odpowiednio jego dolną i~górną granicę.
+
+\section{Analiza wrażliwości na \texorpdfstring{$\alpha$}{alpha}, \texorpdfstring{$\beta$}{beta} i \texorpdfstring{$\gamma$}{gamma}}
+
+Ze względu na szczególne zainteresowanie wpływem wag pewności na jakość rekomendacji, przeprowadzono dodatkową analizę parametrów odpowiedzialnych za ich skalowanie i przesunięcie, czyli $\alpha$, $\beta$ oraz $\gamma$. W tym celu dla każdej funkcji pewności w modelach implicit ALS przeprowadzono eksperymenty, w których obliczono \ndcg{} dla 25 wartości hiperparametru $\alpha$ w równych odstępach na siatce logarytmicznej wokół optymalnej wartości znalezionej w procesie strojenia. Analogiczne badanie wrażliwości przeprowadzono dla 40 wartości parametru $\beta$ w~zakresie od $1$ do $10^{6}$ oraz 40 wartości parametru $\gamma$
+w~zakresie od $10^{-3}$ do $10^{4}$, w~obu przypadkach na siatce logarytmicznej. W podrozdziale~\ref{sec:confidence_analysis} przedstawiono również dodatkowe wykresy przedstawiające zależność funkcji pewności od zmiennej \texttt{playtime\_forever} oraz wyznaczono jej efektywny zakres dla poszczególnych modeli implicit ALS. Pozwoliło to na lepsze zrozumienie, w jaki sposób zastosowane przekształcenia wpływają na proces uczenia modeli.
+
+
+\section{Ograniczenia metodologii}
+
+Przeprowadzone badanie ma ograniczenia, które należy uwzględnić przy
+interpretacji wyników.
+
+\begin{itemize}
+    \item \textbf{Jeden zbiór danych.} Eksperyment zrealizowano wyłącznie na
+    danych platformy Steam. Uogólnienie wniosków wymagałoby powtórzenia go na
+    zbiorach pochodzących z~innych platform, w~których sygnał intensywności
+    interakcji ma odmienny charakter.
+
+    \item \textbf{Postać sygnału.} Zmienna \texttt{playtime\_forever} agreguje
+    czas gry przez cały okres posiadania tytułu, nie oddając ani intensywności,
+    ani aktualności rozgrywki. Formułowane wnioski dotyczą tej konkretnej
+    postaci sygnału i~nie przenoszą się automatycznie na miary uwzględniające
+    jego rozkład w~czasie.
+
+    \item \textbf{Brak wymiaru czasowego.} Zbiór nie zawiera dat przypisania
+    gier do bibliotek, co uniemożliwiło podział danych w~porządku
+    chronologicznym oraz uwzględnienie zmiany preferencji użytkowników w~czasie.
+
+    \item \textbf{Ewaluacja offline.} Ocena została przeprowadzona wyłącznie na
+    danych historycznych, bez testu A/B. Nie pozwala to zweryfikować, czy
+    obserwowane różnice przekładają się na rzeczywiste zachowania użytkowników.
+
+    \item \textbf{Brak podziału na grupy użytkowników.} Ewaluację
+    przeprowadzono na całej populacji, bez rozróżnienia według liczby
+    interakcji. Podział taki mógłby ujawnić różnice w~jakości rekomendacji dla
+    użytkowników o~różnym poziomie aktywności.
+
+    \item \textbf{Uproszczenia analizy wrażliwości.} Ze względu na koszt
+    obliczeniowy podczas badania wpływu $\alpha$, $\beta$ i~$\gamma$ pozostałe
+    hiperparametry utrzymano na stałym poziomie, wyznaczonym na podstawie
+    najlepszego modelu w~danej rodzinie. Wyniki opisują zatem lokalne otoczenie
+    znalezionego optimum.
+\end{itemize}
